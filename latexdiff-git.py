@@ -25,6 +25,8 @@ import argparse
 import sys
 import textwrap
 import subprocess
+import os
+import fnmatch
 
 
 class _HelpAction(argparse._HelpAction):
@@ -83,35 +85,122 @@ class LatexDiffGit:
                present.
 
             """)
+        self.filelist = []
+        self.rev1filelist = []
+        self.rev2filelist = []
 
-        self.gitResetCommand = "git reset HEAD --hard"
-        self.gitCheckoutCommand = "git checkout"
-        self.gitStashPutCommand = "git stash -u"
-        self.gitStashPopCommand = "git stash pop"
-        self.renameCommand = "find . -name \"*.tex\" -exec rename -- \".tex\""
+        self.gitResetCommand = "git reset HEAD --hard".split()
+        self.gitCheckoutCommand = "git checkout".split()
+        self.gitStashPutCommand = "git stash -u".split()
+        self.gitStashPopCommand = "git stash pop".split()
+        self.gitDeleteCommand1 = "git branch -f -d latexdiff-changes1".split()
+        self.gitDeleteCommand2 = "git branch -f -d latexdiff-changes2".split()
+        self.gitAddCommand = "git add .".split()
+        self.gitCommitCommand = "git commit -m".split()
+        self.pdflatexCommand = "pdflatex -interaction batchmode".split()
 
     def diff(self, args):
         """Do the diff part."""
         print("Yay")
+        # Check for latex files and get a list
+        self.get_latex_files()
+
+        subprocess.call(self.gitDeleteCommand1)
+        subprocess.call(self.gitDeleteCommand2)
+
+        # Checkout the first revision 1
         print("Checking out revision 1: {}".format(self.optionsDict['rev1']))
-        command = (self.gitCheckoutCommand +
-                   " -b changes" + self.optionsDict['rev1'])
+        command = (self.gitCheckoutCommand + "-f -b latexdiff-changes1".split()
+                   + [self.optionsDict['rev1']])
         subprocess.call(command)
-        command = (self.renameCommand + "\"-" + self.optionsDict['rev1'] +
-                   ".tex\" '{}' \;")
+
+        # Rename files
+        for i in range(0, len(self.filelist)):
+            os.rename(self.filelist[i], self.rev1filelist[i])
+
+        # Check out revision 2
+        print("Checking out revision 2: {}".format(self.optionsDict['rev2']))
+        command = (self.gitCheckoutCommand + "-f -b latexdiff-changes2".split()
+                   + [self.optionsDict['rev2']])
+        p = subprocess.Popen(command)
+        p.wait()
+
+        # Reset the state so that the files we deleted earlier are back
+        subprocess.call(self.gitResetCommand)
+
+        # Rename files
+        for i in range(0, len(self.filelist)):
+            os.rename(self.filelist[i], self.rev2filelist[i])
+
+        # Generate diffs
+        for i in range(0, len(self.filelist)):
+            command = ("latexdiff --type=UNDERLINE".split() +
+                       [self.rev1filelist[i],
+                       self.rev2filelist[i]])
+            print(command)
+            with open(self.filelist[i], "w") as stdout:
+                p = subprocess.Popen(command, stdout=stdout)
+                p.wait()
+
+            os.remove(self.rev1filelist[i])
+            os.remove(self.rev2filelist[i])
+
+        # Generate pdf
+        command = (self.pdflatexCommand + ("-jobname=diff-" +
+                                           self.optionsDict['rev1'] + "-" +
+                                           self.optionsDict['rev2'] +
+                                           ".tex").split() +
+                   [self.optionsDict['main']])
+        subprocess.call(command, cwd=self.optionsDict['subdir'])
+
+        subprocess.call(self.gitAddCommand)
+
+        command = (self.gitCommitCommand + ["Save changes between " +
+                                            self.optionsDict['rev1'] + " and "
+                                            + self.optionsDict['rev2']])
         subprocess.call(command)
-        subprocess.call(self.gitStashPutCommand)
+
+        print("Checking out branch to save changes.")
+        cmd = (self.gitCheckoutCommand + "-f -b latexdiff-changes \
+               latexdiff-changes2".split())
+        subprocess.call(cmd)
+
+        subprocess.call(self.gitDeleteCommand1)
+        subprocess.call(self.gitDeleteCommand2)
 
     def revise(self, args):
         """Do the revise part."""
         print("No yay")
 
+    def get_latex_files(self):
+        """Get list of files with extension .tex."""
+        self.rev1filelist = []
+        self.rev2filelist = []
+        for root, dirs, files in os.walk('.'):
+            for filename in fnmatch.filter(files, "*.tex"):
+                self.filelist.append(os.path.join(root, filename))
+        if len(self.filelist) > 0:
+            print(self.filelist)
+            for filename in self.filelist:
+                rev1name = (filename[:-4] + "-" + self.optionsDict['rev1'] +
+                            ".tex")
+                rev2name = (filename[:-4] + "-" + self.optionsDict['rev2'] +
+                            ".tex")
+                self.rev1filelist.append(rev1name)
+                self.rev2filelist.append(rev2name)
+        else:
+            print("No tex files found in this directory", file=sys.stderr)
+            sys.exit(-1)
+
     def setup(self):
         """Setup things."""
-        self.parser = argparse.ArgumentParser(prog="latexdiff-git",
-                                              formatter_class=argparse.RawDescriptionHelpFormatter,
-                                              epilog=self.usage_message,
-                                              add_help=False)
+        self.parser = argparse.ArgumentParser(
+            prog="latexdiff-git",
+            formatter_class=argparse.RawDescriptionHelpFormatter,
+            epilog=self.usage_message,
+            add_help=False
+        )
+
         self.parser.add_argument("-h", "--help", action=_HelpAction,
                                  help="View subcommand help")
 
@@ -131,7 +220,7 @@ class LatexDiffGit:
             help="Generate changes output"
         )
         self.diff_parser.set_defaults(func=self.diff)
-        self.diff_parser.add_argument("-s", "--rev1",
+        self.diff_parser.add_argument("-r", "--rev1",
                                       default="master^",
                                       action="store",
                                       help="First revision to diff against")
@@ -145,6 +234,13 @@ class LatexDiffGit:
                                       help="Name of main file. Only used to \
                                       generate final pdf with changes. \
                                       Default: main.tex")
+        self.diff_parser.add_argument("-s", "--subdir",
+                                      default=".",
+                                      action="store",
+                                      help="Name of subdirectory where main \
+                                      file resides.\
+                                      Default: ."
+                                      )
 
     def run(self):
         """Main runner method."""
