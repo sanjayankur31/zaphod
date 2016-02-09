@@ -38,6 +38,7 @@ class _HelpAction(argparse._HelpAction):
     def __call__(self, parser, namespace, values, option_string=None):
         """Custom call method."""
         parser.print_help()
+        print("\n")
 
         subparsers_actions = [
             action for action in parser._actions
@@ -79,7 +80,8 @@ class LatexDiffGit:
             *) Git
             *) pdflatex
             *) Written in Python, so should work on any system where these are
-            present.
+               present.
+
             """)
 
         self.gitResetCommand = "git reset HEAD --hard"
@@ -126,7 +128,6 @@ class LatexDiffGit:
         self.diff_parser = self.subparser.add_parser(
             "diff",
             formatter_class=argparse.RawDescriptionHelpFormatter,
-            epilog=self.usage_message,
             help="Generate changes output"
         )
         self.diff_parser.set_defaults(func=self.diff)
@@ -150,10 +151,12 @@ class LatexDiffGit:
         if len(sys.argv) == 1:
             self.parser.print_help()
             sys.exit(1)
+
         self.options = self.parser.parse_args()
         self.optionsDict = vars(self.options)
-        print(self.optionsDict)
-        self.options.func(self.options)
+        if len(self.optionsDict) != 0:
+            print(self.optionsDict)
+            self.options.func(self.options)
 
 if __name__ == "__main__":
     runner_instance = LatexDiffGit()
