@@ -23,6 +23,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import argparse
 import sys
+import textwrap
 
 
 class _HelpAction(argparse._HelpAction):
@@ -36,7 +37,6 @@ class _HelpAction(argparse._HelpAction):
     def __call__(self, parser, namespace, values, option_string=None):
         """Custom call method."""
         parser.print_help()
-        print("\n")
 
         subparsers_actions = [
             action for action in parser._actions
@@ -51,29 +51,74 @@ class LatexDiffGit:
 
     """Something something."""
 
+    def __init__(self):
+        """Init method."""
+        self.usage_message = textwrap.dedent(
+            """
+        NOTES:
+            The idea of this program is to help LaTeX users track, review, and
+            see changes that have been made in their source files. The script
+            only works when git is used as a version control system.
+
+        Expected workflow:
+            *) Make changes, commit
+            *) Run this program:
+                It will generate a pdf with differences between the two
+                provided Git revisions using latexdiff. It will also commit the
+                annotated TeX sources in a new Git branch called "changes".
+                *) Review commits using generated PDF.
+                *) Accept/ignore commits using this program.
+                *) Commit once finished.
+                *) Merge to master branch.
+                *) Profit.
+
+        Requires:
+            *) latexdiff
+            *) latexrevise
+            *) Git
+            *) pdflatex
+            *) Written in Python, so should work on any system where these are
+            present.
+            """)
+
     def setup(self):
         """Setup things."""
         self.parser = argparse.ArgumentParser(prog="latexdiff-git",
+                                              formatter_class=argparse.RawDescriptionHelpFormatter,
+                                              epilog=self.usage_message,
                                               add_help=False)
         self.parser.add_argument("-h", "--help", action=_HelpAction,
-                                 help="View complete help document")
+                                 help="View subcommand help")
 
         self.subparser = self.parser.add_subparsers(
             help="additional help")
 
         self.revise_parser = self.subparser.add_parser(
             "revise",
-            help="Interactive revision (WIP)",
+            epilog="NOTE: This feature is not yet implemented.",
+            help="Interactive revision (UNIMPLEMENTED)",
         )
 
         self.diff_parser = self.subparser.add_parser(
             "diff",
+            formatter_class=argparse.RawDescriptionHelpFormatter,
+            epilog=self.usage_message,
             help="Generate changes output"
         )
         self.diff_parser.add_argument("-s", "--rev1",
+                                      default="master^",
+                                      action="store_true",
                                       help="First revision to diff against")
         self.diff_parser.add_argument("-t", "--rev2",
+                                      default="master",
+                                      action="store_true",
                                       help="Second revision to diff with.")
+        self.diff_parser.add_argument("-m", "--main",
+                                      action="store_true",
+                                      default="main.tex",
+                                      help="Name of main file. Only used to \
+                                      generate final pdf with changes. \
+                                      Default: main.tex")
 
     def run(self):
         """Main runner method."""
@@ -81,7 +126,6 @@ class LatexDiffGit:
             self.parser.print_help()
             sys.exit(1)
         self.parser.parse_args()
-
 
 if __name__ == "__main__":
     runner_instance = LatexDiffGit()
