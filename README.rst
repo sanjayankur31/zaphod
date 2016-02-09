@@ -5,6 +5,8 @@ A simple script that generates a nice pdf with changes between two git commits.
 Only works for git. Written because latexdiff-vc --flatten doesn't seem to find
 differences in the included tex files.
 
+::
+
     usage: latexdiff-git [-h] {revise,diff} ...
 
     positional arguments:
