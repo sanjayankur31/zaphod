@@ -5,47 +5,59 @@ A simple script that generates a nice pdf with changes between two git commits.
 Only works for git. Written because latexdiff-vc --flatten doesn't seem to find
 differences in the included tex files.
 
+    usage: latexdiff-git [-h] {revise,diff} ...
 
-    usage: ./latexdiff-git.sh options
+    positional arguments:
+      {revise,diff}  additional help
+        revise       Interactive revision (UNIMPLEMENTED)
+        diff         Generate changes output
 
-    This script generates a pdf diff from two git commits in the working directory.
-    To be run in the root of the git repo.
-
-    It's a very simple script. If it doesn't work, you're doing something wrong ;)
-
-    latexdiff itself provides various output options. Please read the latexdiff manpage for more information.
-
-    OPTIONS:
-    -h  Show this message
-
-    -m  Main file to be converted (in case of includes and so on). 
-        Default: main.tex
-
-    -s  Subdirectory which contains tex files. 
-        Default: .
-
-    -r  Revision 1 
-        Default: HEAD~1
-
-    -t  Revision 2 
-        Default: HEAD
-
-    -c  Process citations and bibliography
-        Default: no
-
-    -e  A list of latex commands to ignore
-        Passes a list of commands to latexdiff to ignore. Read the latexdiff
-        man page for more details on --exclude-textcmd
-        Default:
-        Suggested: -e "section,subsection"
-        http://tex.stackexchange.com/a/88377/11281
+    optional arguments:
+      -h, --help     View subcommand help
 
     NOTES:
-    Please use shortcommit references as far as possible since pdflatex and so
-    on have difficulties with special characters in filenames - ~, ^ etc. may
-    not always work. If they don't, look at the script output to understand
-    why.
+        The idea of this program is to help LaTeX users track, review, and
+        see changes that have been made in their source files. The script
+        only works when git is used as a version control system.
 
-    In general, anything that can be checked out should work - branch names,
-    tags, commits.
+    Expected workflow:
+        *) Make changes, commit
+        *) Run this program:
+            It will generate a pdf with differences between the two
+            provided Git revisions using latexdiff. It will also commit the
+            annotated TeX sources in a new Git branch called "changes".
+            *) Review commits using generated PDF.
+            *) Accept/ignore commits using this program.
+            *) Commit once finished.
+            *) Merge to master branch.
+            *) Profit.
+
+    Requires:
+        *) latexdiff
+        *) latexrevise
+        *) Git
+        *) pdflatex
+        *) Written in Python, so should work on any system where these are
+           present.
+
+
+    Subcommand: 'revise'
+    usage: latexdiff-git revise [-h]
+
+    optional arguments:
+      -h, --help  show this help message and exit
+
+    NOTE: This feature is not yet implemented.
+
+    Subcommand: 'diff'
+    usage: latexdiff-git diff [-h] [-r REV1] [-t REV2] [-m MAIN] [-s SUBDIR]
+
+    optional arguments:
+      -h, --help            show this help message and exit
+      -r REV1, --rev1 REV1  First revision to diff against
+      -t REV2, --rev2 REV2  Second revision to diff with.
+      -m MAIN, --main MAIN  Name of main file. Only used to generate final pdf
+                            with changes. Default: main.tex
+      -s SUBDIR, --subdir SUBDIR
+                            Name of subdirectory where main file resides. Default:
 
