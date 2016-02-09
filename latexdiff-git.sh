@@ -68,15 +68,24 @@ function main ()
             if [ "no" == "$EXCLUDECOMMANDS" ]; then
                 latexdiff --type=UNDERLINE "$REV1FILE" "$REV2FILE" > "$DIFFNAME"".tex"
             else
-                latexdiff --type=UNDERLINE --exclude-textcmd="\"$EXCLUDECOMMANDS\"" "$REV1FILE" "$REV2FILE" > "$DIFFNAME"".tex"
+                echo "Excluding some commands: $EXCLUDECOMMANDS"
+                echo "Excluding some commands: $EXCLUDECOMMANDS" >> $LOGFILE 2>&1
+                echo "latexdiff --type=UNDERLINE  --exclude-textcmd="\"$EXCLUDECOMMANDS\"" --exclude-safecmd="\"$EXCLUDECOMMANDS\"" "$REV1FILE" "$REV2FILE"" >> $LOGFILE 2>&1
+                latexdiff --type=UNDERLINE --exclude-textcmd="\"$EXCLUDECOMMANDS\"" --exclude-safecmd="\"$EXCLUDECOMMANDS\"" "$REV1FILE" "$REV2FILE" > "$DIFFNAME"".tex"
             fi
 
+            echo "Running pdflatex once"
+            echo "Running pdflatex once" >> $LOGFILE 2>&1
             pdflatex -interaction batchmode "$DIFFNAME"".tex" >> $LOGFILE 2>&1
             if [ "yes" == "$CITATIONS" ]; then
-                echo "Processing citations."
-                echo "Processing citations." >> $LOGFILE 2>&1
+                echo "Processing citations. Running bibtex"
+                echo "Processing citations. Running bibtex" >> $LOGFILE 2>&1
                 bibtex "$DIFFNAME"".tex" >> $LOGFILE 2>&1
+                echo "Running pdflatex twice"
+                echo "Running pdflatex twice" >> $LOGFILE 2>&1
                 pdflatex -interaction batchmode "$DIFFNAME"".tex" >> $LOGFILE 2>&1
+                echo "Running pdflatex thrice"
+                echo "Running pdflatex thrice" >> $LOGFILE 2>&1
                 pdflatex -interaction batchmode "$DIFFNAME"".tex" >> $LOGFILE 2>&1
             fi
             echo "Moving resultant tex and pdf to $GITREPO"
@@ -107,9 +116,6 @@ function check_requirements ()
         PDFLATEXFOUND="yes"
     fi
 
-    if [ -x "$BIBTEXPATH" ] ; then
-        BIBTEXFOUND="yes"
-    fi
 
     if [ "yes" == "$LATEXPANDFOUND" ] &&  [ "yes" == "$LATEXDIFFFOUND" ] && [ "yes" == "$GITFOUND" ] && [ "yes" == "$PDFLATEXFOUND" ]; then
         echo "Found required binaries. Continuing."
@@ -118,11 +124,14 @@ function check_requirements ()
         return -1
     fi
 
-    if [ "yes" == "$CITATIONS" ] && [ "yes" == "$BIBTEXFOUND" ]; then
-        echo "Bibtex found. Citations will be processed."
-    else
-        echo "Could not find Bibtex. Citations will not be processed."
-        CITATIONS="no"
+    if [ "yes" == "$CITATIONS" ]; then
+        if [ -x "$BIBTEXPATH" ] ; then
+            BIBTEXFOUND="yes"
+            echo "Bibtex found. Citations will be processed."
+        else
+            echo "Could not find Bibtex. Citations will not be processed."
+            CITATIONS="no"
+        fi
     fi
 }
 
