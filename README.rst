@@ -1,4 +1,4 @@
-latex-changes
+latexdiff-git
 -------------
 
 A simple script that generates a nice pdf with changes between two git commits.
