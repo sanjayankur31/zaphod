@@ -81,6 +81,14 @@ class LatexDiffGit:
             present.
             """)
 
+    def diff(self, args):
+        """Do the diff part."""
+        print("Yay")
+
+    def revise(self, args):
+        """Do the revise part."""
+        print("No yay")
+
     def setup(self):
         """Setup things."""
         self.parser = argparse.ArgumentParser(prog="latexdiff-git",
@@ -98,6 +106,7 @@ class LatexDiffGit:
             epilog="NOTE: This feature is not yet implemented.",
             help="Interactive revision (UNIMPLEMENTED)",
         )
+        self.revise_parser.set_defaults(func=self.revise)
 
         self.diff_parser = self.subparser.add_parser(
             "diff",
@@ -105,16 +114,17 @@ class LatexDiffGit:
             epilog=self.usage_message,
             help="Generate changes output"
         )
+        self.diff_parser.set_defaults(func=self.diff)
         self.diff_parser.add_argument("-s", "--rev1",
                                       default="master^",
-                                      action="store_true",
+                                      action="store",
                                       help="First revision to diff against")
         self.diff_parser.add_argument("-t", "--rev2",
                                       default="master",
-                                      action="store_true",
+                                      action="store",
                                       help="Second revision to diff with.")
         self.diff_parser.add_argument("-m", "--main",
-                                      action="store_true",
+                                      action="store",
                                       default="main.tex",
                                       help="Name of main file. Only used to \
                                       generate final pdf with changes. \
@@ -125,7 +135,10 @@ class LatexDiffGit:
         if len(sys.argv) == 1:
             self.parser.print_help()
             sys.exit(1)
-        self.parser.parse_args()
+        self.options = self.parser.parse_args()
+        # self.optionsDict = vars(self.options)
+        # print(self.optionsDict)
+        self.options.func(self.options)
 
 if __name__ == "__main__":
     runner_instance = LatexDiffGit()
