@@ -24,6 +24,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 import argparse
 import sys
 import textwrap
+import subprocess
 
 
 class _HelpAction(argparse._HelpAction):
@@ -81,9 +82,23 @@ class LatexDiffGit:
             present.
             """)
 
+        self.gitResetCommand = "git reset HEAD --hard"
+        self.gitCheckoutCommand = "git checkout"
+        self.gitStashPutCommand = "git stash -u"
+        self.gitStashPopCommand = "git stash pop"
+        self.renameCommand = "find . -name \"*.tex\" -exec rename -- \".tex\""
+
     def diff(self, args):
         """Do the diff part."""
         print("Yay")
+        print("Checking out revision 1: {}".format(self.optionsDict['rev1']))
+        command = (self.gitCheckoutCommand +
+                   " -b changes" + self.optionsDict['rev1'])
+        subprocess.call(command)
+        command = (self.renameCommand + "\"-" + self.optionsDict['rev1'] +
+                   ".tex\" '{}' \;")
+        subprocess.call(command)
+        subprocess.call(self.gitStashPutCommand)
 
     def revise(self, args):
         """Do the revise part."""
@@ -136,8 +151,8 @@ class LatexDiffGit:
             self.parser.print_help()
             sys.exit(1)
         self.options = self.parser.parse_args()
-        # self.optionsDict = vars(self.options)
-        # print(self.optionsDict)
+        self.optionsDict = vars(self.options)
+        print(self.optionsDict)
         self.options.func(self.options)
 
 if __name__ == "__main__":
