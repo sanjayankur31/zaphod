@@ -98,11 +98,13 @@ class LatexDiffGit:
         self.gitCommitCommand = "git commit -m".split()
         self.pdflatexCommand = "pdflatex -interaction batchmode".split()
 
+        # regular expressions for revision
+        self.regExpsBegins = [r'\DIFdelbegin', r'\DIFaddbegin']
+        self.regExpsEnds = [r'\DIFdelend', r'\DIFaddend']
+        self.regExpsBoth = [r'\DIFdelbegin\s*\DIFaddbegin']
+
     def diff(self, args):
         """Do the diff part."""
-        # Check for latex files and get a list
-        self.get_latex_files()
-
         print("Deleting existing branches with same names.")
         subprocess.call(self.gitDeleteCommand1)
         subprocess.call(self.gitDeleteCommand2)
@@ -174,7 +176,6 @@ class LatexDiffGit:
 
     def revise(self, args):
         """Do the revise part."""
-        print("No yay")
 
     def get_latex_files(self):
         """Get list of files with extension .tex."""
@@ -263,8 +264,12 @@ class LatexDiffGit:
         self.options = self.parser.parse_args()
         self.optionsDict = vars(self.options)
         if len(self.optionsDict) != 0:
+            # Check for latex files and get a list
+            self.get_latex_files()
+
             print(self.optionsDict)
             self.options.func(self.options)
+
 
 if __name__ == "__main__":
     runner_instance = LatexDiffGit()
