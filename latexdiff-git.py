@@ -108,6 +108,7 @@ class LatexDiffGit:
 
     def diff(self, args):
         """Do the diff part."""
+        self.rename_files_for_diff()
         print("Deleting existing branches with same names.")
         subprocess.call(self.gitDeleteCommand1)
         subprocess.call(self.gitDeleteCommand2)
@@ -182,23 +183,25 @@ class LatexDiffGit:
 
     def get_latex_files(self):
         """Get list of files with extension .tex."""
-        self.rev1filelist = []
-        self.rev2filelist = []
         for root, dirs, files in os.walk('.'):
             for filename in fnmatch.filter(files, "*.tex"):
                 self.filelist.append(os.path.join(root, filename))
-        if len(self.filelist) > 0:
-            print(self.filelist)
-            for filename in self.filelist:
-                rev1name = (filename[:-4] + "-" + self.optionsDict['rev1'] +
-                            ".tex")
-                rev2name = (filename[:-4] + "-" + self.optionsDict['rev2'] +
-                            ".tex")
-                self.rev1filelist.append(rev1name)
-                self.rev2filelist.append(rev2name)
-        else:
+        if not len(self.filelist) > 0:
             print("No tex files found in this directory", file=sys.stderr)
             sys.exit(-1)
+        print(self.filelist)
+
+    def rename_files_for_diff(self):
+        """Rename files as required for diff."""
+        self.rev1filelist = []
+        self.rev2filelist = []
+        for filename in self.filelist:
+            rev1name = (filename[:-4] + "-" + self.optionsDict['rev1'] +
+                        ".tex")
+            rev2name = (filename[:-4] + "-" + self.optionsDict['rev2'] +
+                        ".tex")
+            self.rev1filelist.append(rev1name)
+            self.rev2filelist.append(rev2name)
 
     def setup(self):
         """Setup things."""
