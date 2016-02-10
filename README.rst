@@ -1,9 +1,21 @@
 latexdiff-git
 -------------
 
-A simple script that generates a nice pdf with changes between two git commits.
-Only works for git. Written because latexdiff-vc --flatten doesn't seem to find
-differences in the included tex files.
+A wrapper around `latexdiff <https://github.com/ftilmann/latexdiff>`__ that
+recursively checks changes in LaTeX sources between two Git revisions and
+generates a nice annotated PDF in a new Git branch. This Git branch sits on top
+of the newer revision - after one has accepted/rejected changes, one can remove 
+the annotations and simply commit and merge to the master branch - a nice workflow.
+
+It's rather simple at the moment and probably has heaps of issues. Feel free to
+modify it to suit your purposes and open pull requests.
+
+Here is a test repository with LaTeX sources and a resultant
+latexdiff-annotated branch to play with:
+https://github.com/sanjayankur31/latex-changes
+
+Usage
+=====
 
 ::
 
@@ -29,7 +41,7 @@ differences in the included tex files.
             provided Git revisions using latexdiff. It will also commit the
             annotated TeX sources in a new Git branch called "changes".
             *) Review commits using generated PDF.
-            *) Accept/ignore commits using this program.
+            *) Accept/ignore changes.
             *) Commit once finished.
             *) Merge to master branch.
             *) Profit.
@@ -39,9 +51,7 @@ differences in the included tex files.
         *) latexrevise
         *) Git
         *) pdflatex
-        *) Written in Python, so should work on any system where these are
-           present.
-
+        *) Python3
 
     Subcommand: 'revise'
     usage: latexdiff-git revise [-h]
@@ -53,6 +63,7 @@ differences in the included tex files.
 
     Subcommand: 'diff'
     usage: latexdiff-git diff [-h] [-r REV1] [-t REV2] [-m MAIN] [-s SUBDIR]
+                              [-e EXCLUDE]
 
     optional arguments:
       -h, --help            show this help message and exit
@@ -62,4 +73,8 @@ differences in the included tex files.
                             with changes. Default: main.tex
       -s SUBDIR, --subdir SUBDIR
                             Name of subdirectory where main file resides. Default:
-
+                            .
+      -e EXCLUDE, --exclude EXCLUDE
+                            Pass exclude options to latexdiff. Please read man
+                            latexdiff for information on --exclude-textcmd and
+                            related options.
