@@ -180,6 +180,11 @@ class LatexDiffGit:
 
     def revise(self, args):
         """Do the revise part."""
+        for i in range(0, len(self.filelist)):
+            filetext = ""
+            with open(self.filelist[i], "r") as thisfile:
+                filetext = thisfile.read()
+            print("Working on file: {}.".format(self.filelist[i]))
 
     def get_latex_files(self):
         """Get list of files with extension .tex."""
