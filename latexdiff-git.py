@@ -91,26 +91,26 @@ class LatexDiffGit:
 
         self.gitResetCommand = "git reset HEAD --hard".split()
         self.gitCheckoutCommand = "git checkout".split()
-        self.gitStashPutCommand = "git stash -u".split()
-        self.gitStashPopCommand = "git stash pop".split()
-        self.gitDeleteCommand1 = "git branch -f -d latexdiff-changes1".split()
-        self.gitDeleteCommand2 = "git branch -f -d latexdiff-changes2".split()
+        self.gitDeleteCommand1 = "git branch -f -d latexdiff-rev1".split()
+        self.gitDeleteCommand2 = "git branch -f -d latexdiff-rev2".split()
+        self.gitDeleteCommand3 = "git branch -f -D latexdiff-annotated".split()
         self.gitAddCommand = "git add .".split()
         self.gitCommitCommand = "git commit -m".split()
         self.pdflatexCommand = "pdflatex -interaction batchmode".split()
 
     def diff(self, args):
         """Do the diff part."""
-        print("Yay")
         # Check for latex files and get a list
         self.get_latex_files()
 
+        print("Deleting existing branches with same names.")
         subprocess.call(self.gitDeleteCommand1)
         subprocess.call(self.gitDeleteCommand2)
+        subprocess.call(self.gitDeleteCommand3)
 
         # Checkout the first revision 1
         print("Checking out revision 1: {}".format(self.optionsDict['rev1']))
-        command = (self.gitCheckoutCommand + "-f -b latexdiff-changes1".split()
+        command = (self.gitCheckoutCommand + "-f -b latexdiff-rev1".split()
                    + [self.optionsDict['rev1']])
         subprocess.call(command)
 
@@ -120,7 +120,7 @@ class LatexDiffGit:
 
         # Check out revision 2
         print("Checking out revision 2: {}".format(self.optionsDict['rev2']))
-        command = (self.gitCheckoutCommand + "-f -b latexdiff-changes2".split()
+        command = (self.gitCheckoutCommand + "-f -b latexdiff-rev2".split()
                    + [self.optionsDict['rev2']])
         p = subprocess.Popen(command)
         p.wait()
@@ -135,8 +135,9 @@ class LatexDiffGit:
         # Generate diffs
         for i in range(0, len(self.filelist)):
             command = ("latexdiff --type=UNDERLINE".split() +
-                       [self.rev1filelist[i],
-                       self.rev2filelist[i]])
+                       ("--exclude-textcmd=" +
+                        self.optionsDict['exclude']).split() +
+                       [self.rev1filelist[i], self.rev2filelist[i]])
             print(command)
             with open(self.filelist[i], "w") as stdout:
                 p = subprocess.Popen(command, stdout=stdout)
@@ -155,18 +156,21 @@ class LatexDiffGit:
 
         subprocess.call(self.gitAddCommand)
 
-        command = (self.gitCommitCommand + ["Save changes between " +
+        command = (self.gitCommitCommand + ["Save annotated changes between " +
                                             self.optionsDict['rev1'] + " and "
                                             + self.optionsDict['rev2']])
         subprocess.call(command)
 
         print("Checking out branch to save changes.")
-        cmd = (self.gitCheckoutCommand + "-f -b latexdiff-changes \
-               latexdiff-changes2".split())
+        cmd = (self.gitCheckoutCommand + "-f -b latexdiff-annotated \
+               latexdiff-rev2".split())
         subprocess.call(cmd)
 
         subprocess.call(self.gitDeleteCommand1)
         subprocess.call(self.gitDeleteCommand2)
+
+        print("COMPLETE: Please rename latexdiff generated branches before " +
+              "re-running the script.")
 
     def revise(self, args):
         """Do the revise part."""
@@ -240,6 +244,14 @@ class LatexDiffGit:
                                       help="Name of subdirectory where main \
                                       file resides.\
                                       Default: ."
+                                      )
+        self.diff_parser.add_argument("-e", "--exclude",
+                                      default="\"\"",
+                                      action="store",
+                                      help="Pass exclude options to latexdiff. \
+                                      Please read man latexdiff for \
+                                      information on --exclude-textcmd \
+                                      and related options."
                                       )
 
     def run(self):
