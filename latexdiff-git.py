@@ -27,6 +27,7 @@ import textwrap
 import subprocess
 import os
 import fnmatch
+import re
 
 
 class _HelpAction(argparse._HelpAction):
@@ -99,9 +100,11 @@ class LatexDiffGit:
         self.pdflatexCommand = "pdflatex -interaction batchmode".split()
 
         # regular expressions for revision
-        self.regExpsBegins = [r'\DIFdelbegin', r'\DIFaddbegin']
-        self.regExpsEnds = [r'\DIFdelend', r'\DIFaddend']
-        self.regExpsBoth = [r'\DIFdelbegin\s*\DIFaddbegin']
+        self.rexepDelbegin = re.compile(r'\DIFdelbegin')
+        self.rexepDelend = re.compile(r'\DIFdelend')
+        self.rexepAddbegin = re.compile(r'\DIFaddbegin')
+        self.rexepAddend = re.compile(r'\DIFaddend')
+        self.regexBoth = re.compile(r'\DIFdelbegin\s*\DIFaddbegin')
 
     def diff(self, args):
         """Do the diff part."""
