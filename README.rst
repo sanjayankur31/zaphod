@@ -63,7 +63,7 @@ Usage
 
     Subcommand: 'diff'
     usage: latexdiff-git diff [-h] [-r REV1] [-t REV2] [-m MAIN] [-s SUBDIR]
-                              [-e EXCLUDE]
+                              [-e EXCLUDE] [-p TYPE]
 
     optional arguments:
       -h, --help            show this help message and exit
@@ -78,3 +78,7 @@ Usage
                             Pass exclude options to latexdiff. Please read man
                             latexdiff for information on --exclude-textcmd and
                             related options.
+      -p TYPE, --type TYPE  Pass markup type option to latexdiff. Please read man
+                            latexdiff for options.
+
+
