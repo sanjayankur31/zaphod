@@ -28,6 +28,7 @@ import subprocess
 import os
 import fnmatch
 import re
+import datetime
 
 
 class _HelpAction(argparse._HelpAction):
@@ -92,9 +93,6 @@ class LatexDiffGit:
 
         self.gitResetCommand = "git reset HEAD --hard".split()
         self.gitCheckoutCommand = "git checkout".split()
-        self.gitDeleteCommand1 = "git branch -f -d latexdiff-rev1".split()
-        self.gitDeleteCommand2 = "git branch -f -d latexdiff-rev2".split()
-        self.gitDeleteCommand3 = "git branch -f -D latexdiff-annotated".split()
         self.gitAddCommand = "git add .".split()
         self.gitCommitCommand = "git commit -m".split()
         self.pdflatexCommand = "pdflatex -interaction batchmode".split()
@@ -109,15 +107,11 @@ class LatexDiffGit:
     def diff(self, args):
         """Do the diff part."""
         self.rename_files_for_diff()
-        print("Deleting existing branches with same names.")
-        subprocess.call(self.gitDeleteCommand1)
-        subprocess.call(self.gitDeleteCommand2)
-        subprocess.call(self.gitDeleteCommand3)
-
         # Checkout the first revision 1
         print("Checking out revision 1: {}".format(self.optionsDict['rev1']))
-        command = (self.gitCheckoutCommand + "-f -b latexdiff-rev1".split()
-                   + [self.optionsDict['rev1']])
+        command = (self.gitCheckoutCommand + (" -b " +
+                                              self.rev1Branch).split() +
+                   [self.optionsDict['rev1']])
         subprocess.call(command)
 
         # Rename files
@@ -126,13 +120,20 @@ class LatexDiffGit:
 
         # Check out revision 2
         print("Checking out revision 2: {}".format(self.optionsDict['rev2']))
-        command = (self.gitCheckoutCommand + "-f -b latexdiff-rev2".split()
-                   + [self.optionsDict['rev2']])
+        command = (self.gitCheckoutCommand + (" -b " +
+                                              self.rev2Branch).split() +
+                   [self.optionsDict['rev2']])
         p = subprocess.Popen(command)
         p.wait()
 
         # Reset the state so that the files we deleted earlier are back
         subprocess.call(self.gitResetCommand)
+
+        print("Checking out branch to save changes.")
+        command = (self.gitCheckoutCommand + (" -b " +
+                                              self.finalBranch).split() +
+                   [self.rev2Branch])
+        subprocess.call(command)
 
         # Rename files
         for i in range(0, len(self.filelist)):
@@ -167,16 +168,11 @@ class LatexDiffGit:
                                             + self.optionsDict['rev2']])
         subprocess.call(command)
 
-        print("Checking out branch to save changes.")
-        cmd = (self.gitCheckoutCommand + "-f -b latexdiff-annotated \
-               latexdiff-rev2".split())
-        subprocess.call(cmd)
-
-        subprocess.call(self.gitDeleteCommand1)
-        subprocess.call(self.gitDeleteCommand2)
-
-        print("COMPLETE: Please rename latexdiff generated branches before " +
-              "re-running the script.")
+        print("\nCOMPLETE: The following branches have been created:\n" +
+              self.rev1Branch + ": Revision 1.\n" +
+              self.rev2Branch + ": Revision 2.\n" +
+              self.finalBranch +
+              ": Branch with annotated versions of sources and diff pdf.\n")
 
     def revise(self, args):
         """Do the revise part."""
@@ -210,6 +206,12 @@ class LatexDiffGit:
 
     def setup(self):
         """Setup things."""
+        self.timenow = datetime.datetime.strftime(datetime.datetime.today(),
+                                                  "%Y%m%d%H%M")
+        self.rev1Branch = self.timenow + "-latexdiff-rev1"
+        self.rev2Branch = self.timenow + "-latexdiff-rev2"
+        self.finalBranch = self.timenow + "-latexdiff-annotated"
+
         self.parser = argparse.ArgumentParser(
             prog="latexdiff-git",
             formatter_class=argparse.RawDescriptionHelpFormatter,
