@@ -141,9 +141,9 @@ class LatexDiffGit:
 
         # Generate diffs
         for i in range(0, len(self.filelist)):
-            command = ("latexdiff --type=UNDERLINE".split() +
-                       ("--exclude-textcmd=" +
-                        self.optionsDict['exclude']).split() +
+            command = (["latexdiff"] + ("--type=" + self.optionsDict['type'] +
+                                        " --exclude-textcmd=" +
+                                        self.optionsDict['exclude']).split() +
                        [self.rev1filelist[i], self.rev2filelist[i]])
             print(command)
             with open(self.filelist[i], "w") as stdout:
@@ -156,8 +156,8 @@ class LatexDiffGit:
         # Generate pdf
         command = (self.pdflatexCommand + ("-jobname=diff-" +
                                            self.optionsDict['rev1'] + "-" +
-                                           self.optionsDict['rev2'] +
-                                           ".tex").split() +
+                                           self.optionsDict['rev2']
+                                           ).split() +
                    [self.optionsDict['main']])
         subprocess.call(command, cwd=self.optionsDict['subdir'])
 
@@ -172,7 +172,10 @@ class LatexDiffGit:
               self.rev1Branch + ": Revision 1.\n" +
               self.rev2Branch + ": Revision 2.\n" +
               self.finalBranch +
-              ": Branch with annotated versions of sources and diff pdf.\n")
+              ": Branch with annotated versions of sources and diff pdf.\n" +
+              "The generated diff pdf is: " + self.optionsDict['subdir'] +
+              "/diff-" + self.optionsDict['rev1'] + "-" +
+              self.optionsDict['rev2'] + ".pdf.\n")
 
     def revise(self, args):
         """Do the revise part."""
@@ -266,6 +269,12 @@ class LatexDiffGit:
                                       Please read man latexdiff for \
                                       information on --exclude-textcmd \
                                       and related options."
+                                      )
+        self.diff_parser.add_argument("-p", "--type",
+                                      default="\"UNDERLINE\"",
+                                      action="store",
+                                      help="Pass markup type option to latexdiff. \
+                                      Please read man latexdiff for options."
                                       )
 
     def run(self):
