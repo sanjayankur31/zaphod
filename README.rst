@@ -59,7 +59,10 @@ Usage
     optional arguments:
       -h, --help  show this help message and exit
 
-    NOTE: This feature is not yet implemented.
+    NOTE: This feature is a WIP.
+    TIP: To accept all - switch to rev2 branch/revision.
+    TIP: To reject all - switch to rev1 branch/revision.
+    Yay! Git!
 
     Subcommand: 'diff'
     usage: latexdiff-git diff [-h] [-r REV1] [-t REV2] [-m MAIN] [-s SUBDIR]

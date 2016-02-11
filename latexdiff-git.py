@@ -230,8 +230,12 @@ class LatexDiffGit:
 
         self.revise_parser = self.subparser.add_parser(
             "revise",
-            epilog="NOTE: This feature is not yet implemented.",
-            help="Interactive revision (UNIMPLEMENTED)",
+            help="Interactive revision (UNIMPLEMENTED) \n",
+            formatter_class=argparse.RawDescriptionHelpFormatter,
+            epilog="NOTE: This feature is a WIP.\n" +
+            "TIP: To accept all - switch to rev2 branch/revision.\n" +
+            "TIP: To reject all - switch to rev1 branch/revision.\n" +
+            "Yay! Git!"
         )
         self.revise_parser.set_defaults(func=self.revise)
 
