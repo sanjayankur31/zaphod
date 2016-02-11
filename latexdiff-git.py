@@ -98,11 +98,10 @@ class LatexDiffGit:
         self.pdflatexCommand = "pdflatex -interaction batchmode".split()
 
         # regular expressions for revision
-        self.rexepDelbegin = re.compile(r'\DIFdelbegin')
-        self.rexepDelend = re.compile(r'\DIFdelend')
-        self.rexepAddbegin = re.compile(r'\DIFaddbegin')
-        self.rexepAddend = re.compile(r'\DIFaddend')
-        self.regexBoth = re.compile(r'\DIFdelbegin\s*\DIFaddbegin')
+        self.rpDelbegin = re.compile(r'\\DIFdelbegin\s*\\DIFdel\s*\{')
+        self.rpDelend = re.compile(r'\}\s*\\DIFdelend')
+        self.rpAddbegin = re.compile(r'\\DIFaddbegin\s*\\DIFadd\s*\{')
+        self.rpAddend = re.compile(r'\}\s*\\DIFaddend')
 
     def diff(self, args):
         """Do the diff part."""
@@ -181,9 +180,89 @@ class LatexDiffGit:
         """Do the revise part."""
         for i in range(0, len(self.filelist)):
             filetext = ""
+            revisedfiletext = ""
+            # Token at the head of a token
+            head = 0
+            # Token at the tail of previous token
+            tail = 0
             with open(self.filelist[i], "r") as thisfile:
                 filetext = thisfile.read()
             print("Working on file: {}.".format(self.filelist[i]))
+            while head < len(filetext):
+                # what's next - addition or deletion?
+                delb_start = 0
+                delb = self.rpDelbegin.search(filetext[head:])
+                dela_start = 0
+                dela = self.rpAddbegin.search(filetext[head:])
+                if delb is None:
+                    delb_start = len(filetext)
+                else:
+                    delb_start = delb.start()
+                if dela is None:
+                    dela_start = len(filetext)
+                else:
+                    dela_start = dela.start()
+
+                # If both are at EOL
+                if dela_start == delb_start:
+                    revisedfiletext += filetext[head:]
+                    print("{}, {}".format(delb_start, dela_start))
+                    break
+
+                if delb_start < dela_start:
+                    # It's a deletion
+                    head = (self.rpDelbegin.search(filetext[head:]).start() +
+                            tail)
+                    revisedfiletext += filetext[tail:head]
+                    tail = (self.rpDelbegin.search(filetext[head:]).end() +
+                            head)
+                    head = (self.rpDelend.search(filetext[tail:]).start() +
+                            tail)
+                    deletion = filetext[tail:head]
+                    print("File under revision: {}\n".format(self.filelist[i]))
+                    print("Deletion found:\n---\n{}\n---\n".format(deletion))
+                    while True:
+                        userinput = input("Delete? Y/N/y/n:")
+                        if userinput == "Y" or userinput == "y":
+                            print("Deleted\n")
+                            break
+                        elif userinput == "N" or userinput == "n":
+                            print("Skipped\n")
+                            revisedfiletext += deletion
+                            break
+                        else:
+                            print("Invalid input. Try again.\n")
+                    head = (self.rpDelend.search(filetext[tail:]).end() + tail)
+                    tail = head
+                else:
+                    # It's an addition
+                    head = (self.rpAddbegin.search(filetext[head:]).start() +
+                            tail)
+                    revisedfiletext += filetext[tail:head]
+                    tail = (self.rpAddbegin.search(filetext[head:]).end() +
+                            head)
+                    head = (self.rpAddend.search(filetext[tail:]).start() +
+                            tail)
+                    addition = filetext[tail:head]
+                    print("File under revision: {}\n".format(self.filelist[i]))
+                    print("Addition found:\n+++\n{}\n+++\n".format(addition))
+                    while True:
+                        userinput = input("Add? Y/N/y/n:")
+                        if userinput == "Y" or userinput == "y":
+                            print("Added\n")
+                            revisedfiletext += addition
+                            break
+                        elif userinput == "N" or userinput == "n":
+                            print("Skipped\n")
+                            break
+                        else:
+                            print("Invalid input. Try again.\n")
+                    head = (self.rpAddend.search(filetext[tail:]).end() + tail)
+                    tail = head
+
+                print(revisedfiletext)
+                outputfile = open(self.filelist[i], 'w')
+                outputfile.write(revisedfiletext)
 
     def get_latex_files(self):
         """Get list of files with extension .tex."""
