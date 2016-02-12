@@ -102,6 +102,10 @@ class LatexDiffGit:
         self.rpDelend = re.compile(r'\}\s*\\DIFdelend')
         self.rpAddbegin = re.compile(r'\\DIFaddbegin\s*\\DIFadd\s*\{')
         self.rpAddend = re.compile(r'\}\s*\\DIFaddend')
+        self.rpPreamble = (r'%DIF PREAMBLE EXTENSION ADDED BY LATEXDIFF.*' +
+                           r'%DIF END PREAMBLE EXTENSION ADDED BY LATEXDIFF\n')
+        self.rpStray = (r'(\\DIFaddbegin\s*)|(\\DIFaddend\s*)' +
+                        r'(\\DIFdelbegin\s*)|(\\DIFdelend\s*)')
 
     def diff(self, args):
         """Do the diff part."""
@@ -190,29 +194,29 @@ class LatexDiffGit:
             print("Working on file: {}.".format(self.filelist[i]))
             while head < len(filetext):
                 # what's next - addition or deletion?
-                delb_start = 0
-                delb = self.rpDelbegin.search(filetext[head:])
-                dela_start = 0
-                dela = self.rpAddbegin.search(filetext[head:])
-                if delb is None:
-                    delb_start = len(filetext)
+                del_start = 0
+                delcheck = self.rpDelbegin.search(filetext[head:])
+                add_start = 0
+                addcheck = self.rpAddbegin.search(filetext[head:])
+                if delcheck is None:
+                    del_start = len(filetext)
                 else:
-                    delb_start = delb.start()
-                if dela is None:
-                    dela_start = len(filetext)
+                    del_start = delcheck.start()
+                if addcheck is None:
+                    add_start = len(filetext)
                 else:
-                    dela_start = dela.start()
+                    add_start = addcheck.start()
 
                 # If both are at EOL
-                if dela_start == delb_start:
+                # print("add_start is: {}\ndel_start is: {}".format(add_start, del_start))
+                if add_start == del_start:
                     revisedfiletext += filetext[head:]
-                    print("{}, {}".format(delb_start, dela_start))
+                    print("{}, {}".format(del_start, add_start))
                     break
 
-                if delb_start < dela_start:
+                if del_start < add_start:
                     # It's a deletion
-                    head = (self.rpDelbegin.search(filetext[head:]).start() +
-                            tail)
+                    head = del_start + tail
                     revisedfiletext += filetext[tail:head]
                     tail = (self.rpDelbegin.search(filetext[head:]).end() +
                             head)
@@ -236,8 +240,7 @@ class LatexDiffGit:
                     tail = head
                 else:
                     # It's an addition
-                    head = (self.rpAddbegin.search(filetext[head:]).start() +
-                            tail)
+                    head = add_start + tail
                     revisedfiletext += filetext[tail:head]
                     tail = (self.rpAddbegin.search(filetext[head:]).end() +
                             head)
@@ -260,9 +263,38 @@ class LatexDiffGit:
                     head = (self.rpAddend.search(filetext[tail:]).end() + tail)
                     tail = head
 
-                print(revisedfiletext)
-                outputfile = open(self.filelist[i], 'w')
-                outputfile.write(revisedfiletext)
+                # print("File contents are now:\n\n{}".format(revisedfiletext))
+
+            # Replace preamble additions
+            revisedfiletext = re.sub(pattern=self.rpPreamble,
+                                     repl='',
+                                     string=revisedfiletext,
+                                     flags=re.DOTALL)
+            # Remove stray latexdiff commands - sometimes using the --exclude
+            # commands adds incomplete constructs
+            revisedfiletext = re.sub(pattern=self.rpStray,
+                                     repl='',
+                                     string=revisedfiletext,
+                                     flags=re.DOTALL)
+            outputfile = open(self.filelist[i], 'w')
+            outputfile.write(revisedfiletext)
+            outputfile.close()
+
+        # Generate pdf
+        command = (self.pdflatexCommand + ("-jobname=accepted").split() +
+                   [self.optionsDict['main']])
+        subprocess.call(command, cwd=self.optionsDict['subdir'])
+
+        subprocess.call(self.gitAddCommand)
+
+        command = (self.gitCommitCommand +
+                   ["Save after going through changes"])
+        subprocess.call(command)
+
+        print("\nCOMPLETE: Changes accepted and committed.\n"
+              "The generated pdf is: " + self.optionsDict['subdir'] +
+              "/accepted" + ".pdf.\n" +
+              "You can merge this branch to master if you wish.\n")
 
     def get_latex_files(self):
         """Get list of files with extension .tex."""
@@ -317,6 +349,19 @@ class LatexDiffGit:
             "Yay! Git!"
         )
         self.revise_parser.set_defaults(func=self.revise)
+        self.revise_parser.add_argument("-m", "--main",
+                                        action="store",
+                                        default="main.tex",
+                                        help="Name of main file. Only used to \
+                                        generate final pdf with changes. \
+                                        Default: main.tex")
+        self.revise_parser.add_argument("-s", "--subdir",
+                                        default=".",
+                                        action="store",
+                                        help="Name of subdirectory where main \
+                                        file resides.\
+                                        Default: ."
+                                        )
 
         self.diff_parser = self.subparser.add_parser(
             "diff",
