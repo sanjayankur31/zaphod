@@ -297,7 +297,7 @@ class Zaphod:
 
     def get_latex_files(self):
         """Get list of files with extension .tex."""
-        for root, dirs, files in os.walk('.'):
+        for root, dirs, files in os.walk(self.optionsDict['subdir']):
             for filename in fnmatch.filter(files, "*.tex"):
                 self.filelist.append(os.path.join(root, filename))
         if not len(self.filelist) > 0:
@@ -397,7 +397,7 @@ class Zaphod:
                                       and related options."
                                       )
         self.diff_parser.add_argument("-p", "--type",
-                                      default="\"UNDERLINE\"",
+                                      default="UNDERLINE",
                                       action="store",
                                       help="Pass markup type option to latexdiff. \
                                       Please read man latexdiff for options."
