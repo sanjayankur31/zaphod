@@ -86,6 +86,12 @@ class Zaphod:
             *) Python3
 
             """)
+        self.timenow = datetime.datetime.strftime(datetime.datetime.today(),
+                                                  "%Y%m%d%H%M")
+        self.rev1Branch = self.timenow + "-latexdiff-rev1"
+        self.rev2Branch = self.timenow + "-latexdiff-rev2"
+        self.finalBranch = self.timenow + "-latexdiff-annotated"
+
         self.filelist = []
         self.rev1filelist = []
         self.rev2filelist = []
@@ -325,12 +331,6 @@ class Zaphod:
 
     def setup(self):
         """Setup things."""
-        self.timenow = datetime.datetime.strftime(datetime.datetime.today(),
-                                                  "%Y%m%d%H%M")
-        self.rev1Branch = self.timenow + "-latexdiff-rev1"
-        self.rev2Branch = self.timenow + "-latexdiff-rev2"
-        self.finalBranch = self.timenow + "-latexdiff-annotated"
-
         self.parser = argparse.ArgumentParser(
             prog="zaphod",
             formatter_class=argparse.RawDescriptionHelpFormatter,
@@ -409,6 +409,21 @@ class Zaphod:
                                       Please read man latexdiff for options."
                                       )
 
+    def check_git_status(self):
+        """Check if Git directory is clean."""
+        command = "git status --porcelain".split()
+        ps = subprocess.check_output(command)
+        rpModified = re.compile(r'^\s*M')
+        rpUntracked = re.compile(r'^\s*\?\?')
+
+        if rpModified.search(ps.decode("ascii")) is not None or \
+                rpUntracked.search(ps.decode("ascii")) is not None:
+            print("Modifed or untracked files found files found.\n" +
+                  "git status output:\n" +
+                  ps.decode("ascii") +
+                  "\nPlease stash or commit and rerun Zaphod.")
+            sys.exit(-3)
+
     def run(self):
         """Main runner method."""
         if len(sys.argv) == 1:
@@ -419,6 +434,7 @@ class Zaphod:
         self.optionsDict = vars(self.options)
         if len(self.optionsDict) != 0:
             # Check for latex files and get a list
+            self.check_git_status()
             self.get_latex_files()
 
             print(self.optionsDict)
