@@ -148,9 +148,15 @@ class Zaphod:
                                         self.optionsDict['exclude']).split() +
                        [self.rev1filelist[i], self.rev2filelist[i]])
             print(command)
-            with open(self.filelist[i], "w") as stdout:
-                p = subprocess.Popen(command, stdout=stdout)
-                p.wait()
+            changedtext = None
+            changedtext = subprocess.check_output(command)
+            if changedtext is None:
+                print("Something went wrong " +
+                      "- not modifying file: {}\n".format(self.filelist[i]))
+            else:
+                newfile = open(self.filelist[i], 'w')
+                newfile.write(changedtext.decode("ascii"))
+                newfile.close()
 
             os.remove(self.rev1filelist[i])
             os.remove(self.rev2filelist[i])
