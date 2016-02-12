@@ -340,10 +340,9 @@ class Zaphod:
 
         self.revise_parser = self.subparser.add_parser(
             "revise",
-            help="Interactive revision (UNIMPLEMENTED) \n",
+            help="Interactive revision\n",
             formatter_class=argparse.RawDescriptionHelpFormatter,
-            epilog="NOTE: This feature is a WIP.\n" +
-            "TIP: To accept all - switch to rev2 branch/revision.\n" +
+            epilog="TIP: To accept all - switch to rev2 branch/revision.\n" +
             "TIP: To reject all - switch to rev1 branch/revision.\n" +
             "Yay! Git!"
         )
@@ -352,13 +351,13 @@ class Zaphod:
                                         action="store",
                                         default="main.tex",
                                         help="Name of main file. Only used to \
-                                        generate final pdf with changes. \
+                                        generate final pdf with changes. \n\
                                         Default: main.tex")
         self.revise_parser.add_argument("-s", "--subdir",
                                         default=".",
                                         action="store",
                                         help="Name of subdirectory where main \
-                                        file resides.\
+                                        file resides.\n\
                                         Default: ."
                                         )
 
@@ -380,13 +379,13 @@ class Zaphod:
                                       action="store",
                                       default="main.tex",
                                       help="Name of main file. Only used to \
-                                      generate final pdf with changes. \
+                                      generate final pdf with changes. \n\
                                       Default: main.tex")
         self.diff_parser.add_argument("-s", "--subdir",
                                       default=".",
                                       action="store",
                                       help="Name of subdirectory where main \
-                                      file resides.\
+                                      file resides.\n\
                                       Default: ."
                                       )
         self.diff_parser.add_argument("-e", "--exclude",

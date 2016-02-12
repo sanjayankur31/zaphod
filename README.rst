@@ -72,12 +72,12 @@ Usage
     optional arguments:
       -h, --help            show this help message and exit
       -m MAIN, --main MAIN  Name of main file. Only used to generate final pdf
-                            with changes. Default: main.tex
+                            with changes.
+                            Default: main.tex
       -s SUBDIR, --subdir SUBDIR
-                            Name of subdirectory where main file resides. Default:
-                            .
+                            Name of subdirectory where main file resides.
+                            Default: .
 
-    NOTE: This feature is a WIP.
     TIP: To accept all - switch to rev2 branch/revision.
     TIP: To reject all - switch to rev1 branch/revision.
     Yay! Git!
@@ -91,10 +91,11 @@ Usage
       -r REV1, --rev1 REV1  First revision to diff against
       -t REV2, --rev2 REV2  Second revision to diff with.
       -m MAIN, --main MAIN  Name of main file. Only used to generate final pdf
-                            with changes. Default: main.tex
+                            with changes.
+                            Default: main.tex
       -s SUBDIR, --subdir SUBDIR
-                            Name of subdirectory where main file resides. Default:
-                            .
+                            Name of subdirectory where main file resides.
+                            Default: .
       -e EXCLUDE, --exclude EXCLUDE
                             Pass exclude options to latexdiff. Please read man
                             latexdiff for information on --exclude-textcmd and
