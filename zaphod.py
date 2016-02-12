@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """
-Save changes between commits and revise them.
+A LaTeX change tracking tool.
 
-File: latexdiff-git.py
+File: zaphod.py
 
 Copyright 2016 Ankur Sinha
 Author: Ankur Sinha <sanjay DOT ankur AT gmail DOT com>
@@ -53,7 +53,7 @@ class _HelpAction(argparse._HelpAction):
                 print(subparser.format_help())
 
 
-class LatexDiffGit:
+class Zaphod:
 
     """Something something."""
 
@@ -73,7 +73,7 @@ class LatexDiffGit:
                 provided Git revisions using latexdiff. It will also commit the
                 annotated TeX sources in a new Git branch called "changes".
                 *) Review commits using generated PDF.
-                *) Accept/ignore commits using this program.
+                *) Accept/ignore changes.
                 *) Commit once finished.
                 *) Merge to master branch.
                 *) Profit.
@@ -83,8 +83,7 @@ class LatexDiffGit:
             *) latexrevise
             *) Git
             *) pdflatex
-            *) Written in Python, so should work on any system where these are
-               present.
+            *) Python3
 
             """)
         self.filelist = []
@@ -327,7 +326,7 @@ class LatexDiffGit:
         self.finalBranch = self.timenow + "-latexdiff-annotated"
 
         self.parser = argparse.ArgumentParser(
-            prog="latexdiff-git",
+            prog="zaphod",
             formatter_class=argparse.RawDescriptionHelpFormatter,
             epilog=self.usage_message,
             add_help=False
@@ -422,6 +421,6 @@ class LatexDiffGit:
 
 
 if __name__ == "__main__":
-    runner_instance = LatexDiffGit()
+    runner_instance = Zaphod()
     runner_instance.setup()
     runner_instance.run()

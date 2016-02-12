@@ -1,5 +1,17 @@
-latexdiff-git
--------------
+Zaphod
+------
+
+A LaTeX change tracking tool.
+
+The name
+========
+
+Zaphod Beeblebrox is a fictional character in the various versions of the
+humorous science fiction story The Hitchhiker's Guide to the Galaxy by Douglas
+Adams.
+
+The tool
+========
 
 A wrapper around `latexdiff <https://github.com/ftilmann/latexdiff>`__ that
 recursively checks changes in LaTeX sources between two Git revisions and
@@ -19,7 +31,7 @@ Usage
 
 ::
 
-    usage: latexdiff-git [-h] {revise,diff} ...
+    usage: zaphod [-h] {revise,diff} ...
 
     positional arguments:
       {revise,diff}  additional help
@@ -53,11 +65,17 @@ Usage
         *) pdflatex
         *) Python3
 
+
     Subcommand: 'revise'
-    usage: latexdiff-git revise [-h]
+    usage: zaphod revise [-h] [-m MAIN] [-s SUBDIR]
 
     optional arguments:
-      -h, --help  show this help message and exit
+      -h, --help            show this help message and exit
+      -m MAIN, --main MAIN  Name of main file. Only used to generate final pdf
+                            with changes. Default: main.tex
+      -s SUBDIR, --subdir SUBDIR
+                            Name of subdirectory where main file resides. Default:
+                            .
 
     NOTE: This feature is a WIP.
     TIP: To accept all - switch to rev2 branch/revision.
@@ -65,8 +83,8 @@ Usage
     Yay! Git!
 
     Subcommand: 'diff'
-    usage: latexdiff-git diff [-h] [-r REV1] [-t REV2] [-m MAIN] [-s SUBDIR]
-                              [-e EXCLUDE] [-p TYPE]
+    usage: zaphod diff [-h] [-r REV1] [-t REV2] [-m MAIN] [-s SUBDIR] [-e EXCLUDE]
+                       [-p TYPE]
 
     optional arguments:
       -h, --help            show this help message and exit
