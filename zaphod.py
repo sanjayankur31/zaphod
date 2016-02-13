@@ -103,10 +103,12 @@ class Zaphod:
         self.pdflatexCommand = "pdflatex -interaction batchmode".split()
 
         # regular expressions for revision
-        self.rpDelbegin = re.compile(r'\\DIFdelbegin\s*\\DIFdel\s*\{')
-        self.rpDelend = re.compile(r'\}\s*\\DIFdelend')
-        self.rpAddbegin = re.compile(r'\\DIFaddbegin\s*\\DIFadd\s*\{')
-        self.rpAddend = re.compile(r'\}\s*\\DIFaddend')
+        self.rpDelbegin = re.compile(r'\\DIFdelbegin\s*')
+        self.rpDelend = re.compile(r'\\DIFdelend\s*')
+
+        self.rpAddbegin = re.compile(r'\\DIFaddbegin\s*')
+        self.rpAddend = re.compile(r'\\DIFaddend\s*')
+
         self.rpPreamble = (r'%DIF PREAMBLE EXTENSION ADDED BY LATEXDIFF.*' +
                            r'%DIF END PREAMBLE EXTENSION ADDED BY LATEXDIFF\n')
         self.rpStray = (r'(\\DIFaddbegin\s*)|(\\DIFaddend\s*)' +
@@ -229,6 +231,13 @@ class Zaphod:
             tail = 0
             with open(self.filelist[i], "r") as thisfile:
                 filetext = thisfile.read()
+
+            # Replace preamble additions
+            filetext = re.sub(pattern=self.rpPreamble,
+                              repl='',
+                              string=filetext,
+                              flags=re.DOTALL)
+
             print("Working on file: {}.".format(self.filelist[i]))
             while head < len(filetext):
                 # what's next - addition or deletion?
@@ -262,6 +271,8 @@ class Zaphod:
                     head = (self.rpDelend.search(filetext[tail:]).start() +
                             tail)
                     deletion = filetext[tail:head]
+                    deletion = re.sub(r'\\DIFdel\{(.*?)\}', r'\1', deletion,
+                                      flags=re.DOTALL)
                     print("File under revision: {}\n".format(self.filelist[i]))
                     print("Deletion found:\n---\n{}\n---\n".format(deletion))
                     while True:
@@ -286,6 +297,8 @@ class Zaphod:
                     head = (self.rpAddend.search(filetext[tail:]).start() +
                             tail)
                     addition = filetext[tail:head]
+                    addition = re.sub(r'\\DIFadd\{(.*?)\}', r'\1', addition,
+                                      flags=re.DOTALL)
                     print("File under revision: {}\n".format(self.filelist[i]))
                     print("Addition found:\n+++\n{}\n+++\n".format(addition))
                     while True:
@@ -304,17 +317,12 @@ class Zaphod:
 
                 # print("File contents are now:\n\n{}".format(revisedfiletext))
 
-            # Replace preamble additions
-            revisedfiletext = re.sub(pattern=self.rpPreamble,
-                                     repl='',
-                                     string=revisedfiletext,
-                                     flags=re.DOTALL)
             # Remove stray latexdiff commands - sometimes using the --exclude
             # commands adds incomplete constructs
-            revisedfiletext = re.sub(pattern=self.rpStray,
-                                     repl='',
-                                     string=revisedfiletext,
-                                     flags=re.DOTALL)
+            # revisedfiletext = re.sub(pattern=self.rpStray,
+            #                         repl='',
+            #                         string=revisedfiletext,
+            #                         flags=re.DOTALL)
             outputfile = open(self.filelist[i], 'w')
             outputfile.write(revisedfiletext)
             outputfile.close()
