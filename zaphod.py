@@ -276,7 +276,7 @@ class Zaphod:
                     print("File under revision: {}\n".format(self.filelist[i]))
                     print("Deletion found:\n---\n{}\n---\n".format(deletion))
                     while True:
-                        userinput = input("Delete? Y/N/y/n:")
+                        userinput = input("Delete? Y/N/y/n: ")
                         if userinput == "Y" or userinput == "y":
                             print("Deleted\n")
                             break
@@ -302,7 +302,7 @@ class Zaphod:
                     print("File under revision: {}\n".format(self.filelist[i]))
                     print("Addition found:\n+++\n{}\n+++\n".format(addition))
                     while True:
-                        userinput = input("Add? Y/N/y/n:")
+                        userinput = input("Add? Y/N/y/n: ")
                         if userinput == "Y" or userinput == "y":
                             print("Added\n")
                             revisedfiletext += addition
@@ -444,7 +444,7 @@ class Zaphod:
                                       Please read man latexdiff for options."
                                       )
 
-    def check_git_status(self):
+    def check_setup(self):
         """Check if Git directory is clean."""
         command = "git status --porcelain".split()
         ps = subprocess.check_output(command)
@@ -459,6 +459,18 @@ class Zaphod:
                   "\nPlease stash or commit and rerun Zaphod.")
             sys.exit(-3)
 
+        if self.optionsDict['main'] and not \
+                os.path.isfile(self.optionsDict['main']):
+            print("Specified main file not found! Please check your " +
+                  "arguments.")
+            sys.exit(-4)
+
+        if self.optionsDict['subdir'] and not \
+                os.path.isdir(self.optionsDict['main']):
+            print("Specified subdirectory not found! Please check your " +
+                  "arguments.")
+            sys.exit(-4)
+
     def run(self):
         """Main runner method."""
         if len(sys.argv) == 1:
@@ -469,8 +481,7 @@ class Zaphod:
         self.optionsDict = vars(self.options)
         if len(self.optionsDict) != 0:
             # Check for latex files and get a list
-            self.check_git_status()
-
+            self.check_setup()
             print(self.optionsDict)
             self.options.func(self.options)
 
