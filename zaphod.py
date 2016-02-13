@@ -114,23 +114,45 @@ class Zaphod:
 
     def diff(self, args):
         """Do the diff part."""
-        self.rename_files_for_diff()
-        # Checkout the first revision 1
-        print("Checking out revision 1: {}".format(self.optionsDict['rev1']))
+        print("Generating full file list.")
+        # Get all latex files in rev1
         command = (self.gitCheckoutCommand + (" -b " +
                                               self.rev1Branch).split() +
                    [self.optionsDict['rev1']])
-        subprocess.call(command)
+        p = subprocess.Popen(command)
+        p.wait()
+        self.filelist += self.get_latex_files()
+
+        # Get all latex files in rev2
+        command = (self.gitCheckoutCommand + (" -b " +
+                                              self.rev2Branch).split() +
+                   [self.optionsDict['rev2']])
+        p = subprocess.Popen(command)
+        p.wait()
+        self.filelist += self.get_latex_files()
+        # remove duplicates
+        self.filelist = list(set(self.filelist))
+        print("File list generated:\n{}".format(self.filelist))
+
+        # Now that we have a complete list, we get to work
+        print("Checking out revision 1: {}".format(self.optionsDict['rev1']))
+        command = (self.gitCheckoutCommand + [self.rev1Branch])
+        p = subprocess.Popen(command)
+        p.wait()
+        self.rev1filelist = self.generate_rev_filenames(
+            self.optionsDict['rev1'])
 
         # Rename files
         for i in range(0, len(self.filelist)):
+            # if a file doesn't exist in this revision, it has been removed, so
+            # I create an empty file for latexdiff
+            if not os.path.isfile(self.filelist[i]):
+                open(self.filelist[i], 'a').close()
             os.rename(self.filelist[i], self.rev1filelist[i])
 
         # Check out revision 2
         print("Checking out revision 2: {}".format(self.optionsDict['rev2']))
-        command = (self.gitCheckoutCommand + (" -b " +
-                                              self.rev2Branch).split() +
-                   [self.optionsDict['rev2']])
+        command = (self.gitCheckoutCommand + [self.rev2Branch])
         p = subprocess.Popen(command)
         p.wait()
 
@@ -143,8 +165,12 @@ class Zaphod:
                    [self.rev2Branch])
         subprocess.call(command)
 
+        self.rev2filelist = self.generate_rev_filenames(
+            self.optionsDict['rev2'])
         # Rename files
         for i in range(0, len(self.filelist)):
+            if not os.path.isfile(self.filelist[i]):
+                open(self.filelist[i], 'a').close()
             os.rename(self.filelist[i], self.rev2filelist[i])
 
         # Generate diffs
@@ -193,6 +219,7 @@ class Zaphod:
 
     def revise(self, args):
         """Do the revise part."""
+        self.filelist = self.get_latex_files()
         for i in range(0, len(self.filelist)):
             filetext = ""
             revisedfiletext = ""
@@ -219,7 +246,8 @@ class Zaphod:
                     add_start = addcheck.start()
 
                 # If both are at EOL
-                # print("add_start is: {}\ndel_start is: {}".format(add_start, del_start))
+                # print("add_start is: {}\ndel_start is: {}".format(add_start,
+                # del_start))
                 if add_start == del_start:
                     revisedfiletext += filetext[head:]
                     print("{}, {}".format(del_start, add_start))
@@ -309,25 +337,24 @@ class Zaphod:
 
     def get_latex_files(self):
         """Get list of files with extension .tex."""
+        filelist = []
         for root, dirs, files in os.walk(self.optionsDict['subdir']):
             for filename in fnmatch.filter(files, "*.tex"):
-                self.filelist.append(os.path.join(root, filename))
-        if not len(self.filelist) > 0:
+                if filename not in filelist:
+                    filelist.append(os.path.join(root, filename))
+        if not len(filelist) > 0:
             print("No tex files found in this directory", file=sys.stderr)
             sys.exit(-1)
-        print(self.filelist)
+        # print(filelist)
+        return filelist
 
-    def rename_files_for_diff(self):
+    def generate_rev_filenames(self, rev):
         """Rename files as required for diff."""
-        self.rev1filelist = []
-        self.rev2filelist = []
+        revfilelist = []
         for filename in self.filelist:
-            rev1name = (filename[:-4] + "-" + self.optionsDict['rev1'] +
-                        ".tex")
-            rev2name = (filename[:-4] + "-" + self.optionsDict['rev2'] +
-                        ".tex")
-            self.rev1filelist.append(rev1name)
-            self.rev2filelist.append(rev2name)
+            revname = (filename[:-4] + "-" + rev + ".tex")
+            revfilelist.append(revname)
+        return revfilelist
 
     def setup(self):
         """Setup things."""
@@ -435,7 +462,6 @@ class Zaphod:
         if len(self.optionsDict) != 0:
             # Check for latex files and get a list
             self.check_git_status()
-            self.get_latex_files()
 
             print(self.optionsDict)
             self.options.func(self.options)
