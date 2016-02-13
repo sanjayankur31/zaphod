@@ -459,16 +459,21 @@ class Zaphod:
                   "\nPlease stash or commit and rerun Zaphod.")
             sys.exit(-3)
 
-        if self.optionsDict['main'] and not \
-                os.path.isfile(self.optionsDict['main']):
-            print("Specified main file not found! Please check your " +
-                  "arguments.")
+        if self.optionsDict['subdir'] and not \
+                os.path.isdir(self.optionsDict['subdir']):
+            print("Specified subdirectory not found at {}!\n".format(
+                self.optionsDict['subdir']) +
+                "Please check your arguments.")
             sys.exit(-4)
 
-        if self.optionsDict['subdir'] and not \
-                os.path.isdir(self.optionsDict['main']):
-            print("Specified subdirectory not found! Please check your " +
-                  "arguments.")
+        if self.optionsDict['main'] and self.optionsDict['subdir'] \
+                and not \
+                os.path.isfile(os.path.join(self.optionsDict['subdir'],
+                                            self.optionsDict['main'])):
+            print("Specified main file not found at {}!\n".format(
+                os.path.join(self.optionsDict['subdir'],
+                             self.optionsDict['main'])) +
+                  "Please check your arguments.")
             sys.exit(-4)
 
     def run(self):
