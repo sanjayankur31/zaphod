@@ -63,6 +63,7 @@ Usage
         *) latexrevise
         *) Git
         *) pdflatex
+        *) bibtex
         *) Python3
 
 
@@ -77,6 +78,8 @@ Usage
       -s SUBDIR, --subdir SUBDIR
                             Name of subdirectory where main file resides.
                             Default: .
+      -c, --citations       Document contains citations. Will run pdflatex and
+                            bibtex as required. Default: False
 
     TIP: To accept all - switch to rev2 branch/revision.
     TIP: To reject all - switch to rev1 branch/revision.
@@ -102,5 +105,5 @@ Usage
                             related options.
       -p TYPE, --type TYPE  Pass markup type option to latexdiff. Please read man
                             latexdiff for options.
-
-
+      -c, --citations       Document contains citations. Will run pdflatex and
+                            bibtex as required. Default: False

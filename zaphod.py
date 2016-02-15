@@ -83,6 +83,7 @@ class Zaphod:
             *) latexrevise
             *) Git
             *) pdflatex
+            *) bibtex
             *) Python3
 
             """)
@@ -101,6 +102,7 @@ class Zaphod:
         self.gitAddCommand = "git add .".split()
         self.gitCommitCommand = "git commit -m".split()
         self.pdflatexCommand = "pdflatex -interaction batchmode".split()
+        self.bibtexCommand = ["bibtex"]
 
         # regular expressions for revision
         self.rpDelbegin = re.compile(r'\\DIFdelbegin\s*')
@@ -202,6 +204,15 @@ class Zaphod:
                                            ).split() +
                    [self.optionsDict['main']])
         subprocess.call(command, cwd=self.optionsDict['subdir'])
+
+        if optionsDict['citations']:
+            print("User has specified citations - rerunning pdflatex" +
+                  " and bibtex as requird.")
+            commandb = (self.bibtexCommand + [self.optionsDict['main']])
+            subprocess.call(command, cwd=self.optionsDict['subdir'])
+            # command is already the pdflatex command
+            subprocess.call(command, cwd=self.optionsDict['subdir'])
+            subprocess.call(command, cwd=self.optionsDict['subdir'])
 
         subprocess.call(self.gitAddCommand)
 
@@ -401,6 +412,13 @@ class Zaphod:
                                         file resides.\n\
                                         Default: ."
                                         )
+        self.revise_parser.add_argument("-c", "--citations",
+                                        action="store_true",
+                                        default=False,
+                                        help="Document contains citations.\n\
+                                        Will run pdflatex and bibtex as \
+                                        required. \nDefault: False"
+                                        )
 
         self.diff_parser = self.subparser.add_parser(
             "diff",
@@ -442,6 +460,13 @@ class Zaphod:
                                       action="store",
                                       help="Pass markup type option to latexdiff. \
                                       Please read man latexdiff for options."
+                                      )
+        self.diff_parser.add_argument("-c", "--citations",
+                                      action="store_true",
+                                      default=False,
+                                      help="Document contains citations.\n\
+                                      Will run pdflatex and bibtex as \
+                                      required.\nDefault: False"
                                       )
 
     def check_setup(self):
