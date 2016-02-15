@@ -1,9 +1,11 @@
 Zaphod
 ------
 .. image:: https://img.shields.io/badge/license-GPLv3-blue.svg
- :target: https://github.com/sanjayankur31/zaphod/blob/master/LICENSE
+    :target: https://github.com/sanjayankur31/zaphod/blob/master/LICENSE
 
-.. image:: https://img.shields.io/github/release/qubyte/rubidium.svg   
+.. image:: https://img.shields.io/github/release/qubyte/rubidium.svg
+    :target: https://github.com/sanjayankur31/zaphod/releases
+|
 
 A LaTeX change tracking tool.
 
