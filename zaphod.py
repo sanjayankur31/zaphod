@@ -29,6 +29,7 @@ import os
 import fnmatch
 import re
 import datetime
+import shutil
 
 
 class _HelpAction(argparse._HelpAction):
@@ -87,6 +88,8 @@ class Zaphod:
             *) Python3
 
             """)
+
+        self.commandList = ["pdflatex", "latexdiff", "git"]
         self.timenow = datetime.datetime.strftime(datetime.datetime.today(),
                                                   "%Y%m%d%H%M")
         self.rev1Branch = self.timenow + "-latexdiff-rev1"
@@ -500,6 +503,17 @@ class Zaphod:
                              self.optionsDict['main'])) +
                   "Please check your arguments.")
             sys.exit(-4)
+
+        for command in self.commandList:
+            if not shutil.which(command):
+                print(command + " not found! Exiting!",
+                      file=stderr)
+                sys.exit(-5)
+
+        if self.optionsDict['citations'] and not shutil.which("bibtex"):
+            print("bibtex not found! Exiting!",
+                  file=stderr)
+            sys.exit(-6)
 
     def run(self):
         """Main runner method."""
