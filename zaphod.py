@@ -190,7 +190,8 @@ class Zaphod:
             changedtext = subprocess.check_output(command)
             if changedtext is None:
                 print("Something went wrong " +
-                      "- not modifying file: {}\n".format(self.filelist[i]))
+                      "- not modifying file: {}\n".format(self.filelist[i]) +
+                      "Exiting!", file=stderr)
             else:
                 newfile = open(self.filelist[i], 'w')
                 newfile.write(changedtext.decode("ascii"))
@@ -483,14 +484,15 @@ class Zaphod:
             print("Modifed or untracked files found files found.\n" +
                   "git status output:\n" +
                   ps.decode("ascii") +
-                  "\nPlease stash or commit and rerun Zaphod.")
+                  "\nPlease stash or commit and rerun Zaphod.",
+                  file=stderr)
             sys.exit(-3)
 
         if self.optionsDict['subdir'] and not \
                 os.path.isdir(self.optionsDict['subdir']):
             print("Specified subdirectory not found at {}!\n".format(
                 self.optionsDict['subdir']) +
-                "Please check your arguments.")
+                "Please check your arguments.", file=stderr)
             sys.exit(-4)
 
         if self.optionsDict['main'] and self.optionsDict['subdir'] \
@@ -500,7 +502,7 @@ class Zaphod:
             print("Specified main file not found at {}!\n".format(
                 os.path.join(self.optionsDict['subdir'],
                              self.optionsDict['main'])) +
-                  "Please check your arguments.")
+                  "Please check your arguments.", file=stderr)
             sys.exit(-4)
 
         for command in self.commandList:
@@ -528,8 +530,8 @@ class Zaphod:
             print(self.optionsDict)
             self.options.func(self.options)
 
-
 if __name__ == "__main__":
     runner_instance = Zaphod()
     runner_instance.setup()
     runner_instance.run()
+    sys.exit(0)
