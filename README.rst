@@ -60,7 +60,6 @@ Usage
 
     Requires:
         *) latexdiff
-        *) latexrevise
         *) Git
         *) pdflatex
         *) bibtex

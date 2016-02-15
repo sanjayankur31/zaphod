@@ -81,7 +81,6 @@ class Zaphod:
 
         Requires:
             *) latexdiff
-            *) latexrevise
             *) Git
             *) pdflatex
             *) bibtex
