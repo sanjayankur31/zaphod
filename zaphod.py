@@ -208,7 +208,7 @@ class Zaphod:
                    [self.optionsDict['main']])
         subprocess.call(command, cwd=self.optionsDict['subdir'])
 
-        if optionsDict['citations']:
+        if self.optionsDict['citations']:
             print("User has specified citations - rerunning pdflatex" +
                   " and bibtex as requird.")
             commandb = (self.bibtexCommand + [self.optionsDict['main']])
