@@ -98,6 +98,7 @@ class Zaphod:
         self.filelist = []
         self.rev1filelist = []
         self.rev2filelist = []
+        self.modifiedfiles = []
 
         self.gitResetCommand = "git reset HEAD --hard".split()
         self.gitCheckoutCommand = "git checkout".split()
@@ -200,22 +201,8 @@ class Zaphod:
             os.remove(self.rev1filelist[i])
             os.remove(self.rev2filelist[i])
 
-        # Generate pdf
-        command = (self.pdflatexCommand + ("-jobname=diff-" +
-                                           self.optionsDict['rev1'] + "-" +
-                                           self.optionsDict['rev2']
-                                           ).split() +
-                   [self.optionsDict['main']])
-        subprocess.call(command, cwd=self.optionsDict['subdir'])
-
-        if self.optionsDict['citations']:
-            print("User has specified citations - rerunning pdflatex" +
-                  " and bibtex as requird.")
-            commandb = (self.bibtexCommand + [self.optionsDict['main']])
-            subprocess.call(command, cwd=self.optionsDict['subdir'])
-            # command is already the pdflatex command
-            subprocess.call(command, cwd=self.optionsDict['subdir'])
-            subprocess.call(command, cwd=self.optionsDict['subdir'])
+        self.generate_pdf("diff-" + self.optionsDict['rev1'] + "-" +
+                          self.optionsDict['rev2'])
 
         subprocess.call(self.gitAddCommand)
 
@@ -228,22 +215,46 @@ class Zaphod:
               self.rev1Branch + ": Revision 1.\n" +
               self.rev2Branch + ": Revision 2.\n" +
               self.finalBranch +
-              ": Branch with annotated versions of sources and diff pdf.\n" +
-              "The generated diff pdf is: " + self.optionsDict['subdir'] +
-              "/diff-" + self.optionsDict['rev1'] + "-" +
-              self.optionsDict['rev2'] + ".pdf.\n")
+              ": Branch with annotated versions of sources and diff pdf.\n")
 
     def revise(self, args):
         """Do the revise part."""
-        self.filelist = self.get_latex_files()
-        for i in range(0, len(self.filelist)):
+        self.filelist = self.get_modified_latex_files()
+        while len(self.filelist) > 0:
+            while True:
+                print("LaTeX files with annotations:")
+                for i in range(0, len(self.filelist)):
+                    print("[{}] {}".format(i+1, self.filelist[i]))
+                print()
+                filenumber = input("Pick file to revise? " +
+                                   "1-{}/Q/q: ".format(len(self.filelist)))
+
+                if filenumber.isalpha():
+                    if filenumber == 'Q' or filenumber == 'q':
+                        self.generate_pdf("accepted")
+                        self.save_changes()
+
+                if filenumber.isdigit():
+                    filenumber = int(filenumber)
+                else:
+                    print("\nInvalid input. Please try again.",
+                          file=sys.stderr)
+                    continue
+
+                if filenumber > 0 and filenumber <= len(self.filelist):
+                    break
+                else:
+                    print("\nInvalid input. Please try again.",
+                          file=sys.stderr)
+
+            filetorevise = self.filelist[filenumber - 1]
             filetext = ""
             revisedfiletext = ""
             # Token at the head of a token
             head = 0
             # Token at the tail of previous token
             tail = 0
-            with open(self.filelist[i], "r") as thisfile:
+            with open(filetorevise, "r") as thisfile:
                 filetext = thisfile.read()
 
             # Replace preamble additions
@@ -252,7 +263,7 @@ class Zaphod:
                               string=filetext,
                               flags=re.DOTALL)
 
-            print("Working on file: {}.".format(self.filelist[i]))
+            print("Working on file: {}.".format(filetorevise))
             while head < len(filetext):
                 # what's next - addition or deletion?
                 del_start = 0
@@ -269,11 +280,9 @@ class Zaphod:
                     add_start = addcheck.start()
 
                 # If both are at EOL
-                # print("add_start is: {}\ndel_start is: {}".format(add_start,
-                # del_start))
                 if add_start == del_start:
                     revisedfiletext += filetext[head:]
-                    print("{}, {}".format(del_start, add_start))
+                    # print("{}, {}".format(del_start, add_start))
                     break
 
                 if del_start < add_start:
@@ -287,19 +296,27 @@ class Zaphod:
                     deletion = filetext[tail:head]
                     deletion = re.sub(r'\\DIFdel\{(.*?)\}', r'\1', deletion,
                                       flags=re.DOTALL)
-                    print("File under revision: {}\n".format(self.filelist[i]))
-                    print("Deletion found:\n---\n{}\n---\n".format(deletion))
+                    print("======\nFile under revision: {}".format(
+                        filetorevise))
+                    print("Deletion found:\n---\n{}\n---".format(deletion))
                     while True:
-                        userinput = input("Delete? Y/N/y/n: ")
+                        userinput = input("Delete? Y/N/Q/y/n/q: ")
+                        if not userinput.isalpha():
+                            print("\nInvalid input. Try again.\n")
+                            continue
+
                         if userinput == "Y" or userinput == "y":
-                            print("Deleted\n")
+                            print("Deleted.")
                             break
                         elif userinput == "N" or userinput == "n":
-                            print("Skipped\n")
+                            print("Skipped.")
                             revisedfiletext += deletion
                             break
+                        elif userinput == "Q" or userinput == "q":
+                            self.generate_pdf("accepted")
+                            self.save_changes()
                         else:
-                            print("Invalid input. Try again.\n")
+                            print("\nInvalid input. Try again.\n")
                     head = (self.rpDelend.search(filetext[tail:]).end() + tail)
                     tail = head
                 else:
@@ -313,49 +330,112 @@ class Zaphod:
                     addition = filetext[tail:head]
                     addition = re.sub(r'\\DIFadd\{(.*?)\}', r'\1', addition,
                                       flags=re.DOTALL)
-                    print("File under revision: {}\n".format(self.filelist[i]))
-                    print("Addition found:\n+++\n{}\n+++\n".format(addition))
+                    print("======\nFile under revision: {}".format(
+                        filetorevise))
+                    print("Addition found:\n+++\n{}\n+++".format(addition))
                     while True:
-                        userinput = input("Add? Y/N/y/n: ")
+                        userinput = input("Add? Y/N/Q/y/n/q: ")
+                        if not userinput.isalpha():
+                            print("\nInvalid input. Try again.\n")
+                            continue
+
                         if userinput == "Y" or userinput == "y":
-                            print("Added\n")
+                            print("Added.")
                             revisedfiletext += addition
                             break
                         elif userinput == "N" or userinput == "n":
-                            print("Skipped\n")
+                            print("Skipped.")
                             break
+                        elif userinput == "Q" or userinput == "q":
+                            self.generate_pdf("accepted")
+                            self.save_changes()
                         else:
-                            print("Invalid input. Try again.\n")
+                            print("\nInvalid input. Try again.\n")
                     head = (self.rpAddend.search(filetext[tail:]).end() + tail)
                     tail = head
 
-                # print("File contents are now:\n\n{}".format(revisedfiletext))
-
-            # Remove stray latexdiff commands - sometimes using the --exclude
-            # commands adds incomplete constructs
-            # revisedfiletext = re.sub(pattern=self.rpStray,
-            #                         repl='',
-            #                         string=revisedfiletext,
-            #                         flags=re.DOTALL)
-            outputfile = open(self.filelist[i], 'w')
+            outputfile = open(filetorevise, 'w')
             outputfile.write(revisedfiletext)
             outputfile.close()
+            self.modifiedfiles += [filetorevise]
+            print("======\nFile {} revised and saved.\n".format(filetorevise))
+            self.filelist.remove(filetorevise)
 
         # Generate pdf
-        command = (self.pdflatexCommand + ("-jobname=accepted").split() +
-                   [self.optionsDict['main']])
-        subprocess.call(command, cwd=self.optionsDict['subdir'])
+        self.generate_pdf("accepted")
+        self.save_changes()
 
-        subprocess.call(self.gitAddCommand)
+    def save_changes(self):
+        """Commit changes."""
+        if len(self.modifiedfiles) > 0:
+            print("\nFollowing files have been modified:")
+            for i in range(0, len(self.modifiedfiles)):
+                print("[{}] {}".format(i+1, self.modifiedfiles[i]))
 
-        command = (self.gitCommitCommand +
-                   ["Save after going through changes"])
-        subprocess.call(command)
+            print()
+            while True:
+                savechanges = input("Commit current changes? Y/y/N/n: ")
+                if savechanges == "y" or savechanges == "Y":
+                    subprocess.call(self.gitAddCommand)
+                    commitmessage = input("Enter commit message: ")
 
-        print("\nCOMPLETE: Changes accepted and committed.\n"
-              "The generated pdf is: " + self.optionsDict['subdir'] +
-              "/accepted" + ".pdf.\n" +
-              "You can merge this branch to master if you wish.\n")
+                    command = (self.gitCommitCommand + [commitmessage])
+                    subprocess.call(command)
+                    print("Changes committed.\n" +
+                          "You can merge this branch to master if you wish.\n")
+                    break
+                elif savechanges == "n" or savechanges == "N":
+                    print("Exiting without committing.")
+                    break
+                else:
+                    print("\nInvalid input. Please try again.",
+                          file=sys.stderr)
+        else:
+            print("No files modified. Exiting.")
+
+        sys.exit(0)
+
+    def generate_pdf(self, filename):
+        """Generate pdf file."""
+        if len(self.modifiedfiles) > 0:
+            print("\nFollowing files have been modified:")
+            for i in range(0, len(self.modifiedfiles)):
+                print("[{}] {}".format(i+1, self.modifiedfiles[i]))
+
+            print()
+            while True:
+                generatepdf = input("Generate pdf? Y/y/N/n: ")
+
+                if generatepdf == "Y" or generatepdf == "y":
+                    command = (self.pdflatexCommand +
+                               ("-jobname=" + filename).split() +
+                               [self.optionsDict['main']])
+                    subprocess.call(command, cwd=self.optionsDict['subdir'])
+
+                    if self.optionsDict['citations']:
+                        print("User has specified citations -" +
+                              " rerunning pdflatex" +
+                              " and bibtex as requird.")
+                        commandb = (self.bibtexCommand +
+                                    [self.optionsDict['main']])
+                        subprocess.call(command,
+                                        cwd=self.optionsDict['subdir'])
+                        # command is already the pdflatex command
+                        subprocess.call(command,
+                                        cwd=self.optionsDict['subdir'])
+                        subprocess.call(command,
+                                        cwd=self.optionsDict['subdir'])
+
+                    print("PDF generated: " +
+                          self.optionsDict['subdir'] + "/" +
+                          filename + ".pdf")
+                    break
+                elif generatepdf == "N" or generatepdf == "n":
+                    print("Not generating pdf.")
+                    break
+                else:
+                    print("\nInvalid input. Please try again.",
+                          file=sys.stderr)
 
     def get_latex_files(self):
         """Get list of files with extension .tex."""
@@ -369,6 +449,50 @@ class Zaphod:
             sys.exit(-1)
         # print(filelist)
         return filelist
+
+    def get_modified_latex_files(self):
+        """Get list of files with latexdiff annotations."""
+        filelist = []
+        modifield_filelist = []
+        for root, dirs, files in os.walk(self.optionsDict['subdir']):
+            for filename in fnmatch.filter(files, "*.tex"):
+                if filename not in filelist:
+                    filelist.append(os.path.join(root, filename))
+        if not len(filelist) > 0:
+            print("No tex files found in this directory", file=sys.stderr)
+            sys.exit(-1)
+
+        for i in range(0, len(filelist)):
+            filetorevise = filelist[i]
+
+            with open(filetorevise, "r") as thisfile:
+                filetext = thisfile.read()
+
+            # Replace preamble additions
+            filetext = re.sub(pattern=self.rpPreamble,
+                              repl='',
+                              string=filetext,
+                              flags=re.DOTALL)
+
+            # Check for annotations
+            del_start = 0
+            delcheck = self.rpDelbegin.search(filetext[:])
+            add_start = 0
+            addcheck = self.rpAddbegin.search(filetext[:])
+            if delcheck is None:
+                del_start = len(filetext)
+            else:
+                del_start = delcheck.start()
+            if addcheck is None:
+                add_start = len(filetext)
+            else:
+                add_start = addcheck.start()
+
+            # If both are at EOL remove from file list
+            if not add_start == del_start:
+                modifield_filelist += [filetorevise]
+
+        return modifield_filelist
 
     def generate_rev_filenames(self, rev):
         """Rename files as required for diff."""
@@ -485,7 +609,7 @@ class Zaphod:
                   "git status output:\n" +
                   ps.decode("ascii") +
                   "\nPlease stash or commit and rerun Zaphod.",
-                  file=stderr)
+                  file=sys.stderr)
             sys.exit(-3)
 
         if self.optionsDict['subdir'] and not \
