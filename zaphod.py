@@ -453,7 +453,7 @@ class Zaphod:
     def get_modified_latex_files(self):
         """Get list of files with latexdiff annotations."""
         filelist = []
-        modifield_filelist = []
+        modified_filelist = []
         for root, dirs, files in os.walk(self.optionsDict['subdir']):
             for filename in fnmatch.filter(files, "*.tex"):
                 if filename not in filelist:
@@ -488,11 +488,12 @@ class Zaphod:
             else:
                 add_start = addcheck.start()
 
-            # If both are at EOL remove from file list
+            # Only add to filelist if both aren't EOL (no latexdiff annotations
+            # if they are)
             if not add_start == del_start:
-                modifield_filelist += [filetorevise]
+                modified_filelist += [filetorevise]
 
-        return modifield_filelist
+        return modified_filelist
 
     def generate_rev_filenames(self, rev):
         """Rename files as required for diff."""
