@@ -108,15 +108,17 @@ class Zaphod:
         self.bibtexCommand = ["bibtex"]
 
         # regular expressions for revision
-        self.rpDelbegin = re.compile(r'\\DIFdelbegin\s*')
-        self.rpDelend = re.compile(r'\\DIFdelend\s*')
+        self.rxDelbegin = re.compile(r'\\DIFdelbegin\s*')
+        self.rxDelend = re.compile(r'\\DIFdelend\s*')
 
-        self.rpAddbegin = re.compile(r'\\DIFaddbegin\s*')
-        self.rpAddend = re.compile(r'\\DIFaddend\s*')
+        self.rxAddbegin = re.compile(r'\\DIFaddbegin\s*')
+        self.rxAddend = re.compile(r'\\DIFaddend\s*')
 
-        self.rpPreamble = (r'%DIF PREAMBLE EXTENSION ADDED BY LATEXDIFF.*' +
-                           r'%DIF END PREAMBLE EXTENSION ADDED BY LATEXDIFF\n')
-        self.rpStray = (r'(\\DIFaddbegin\s*)|(\\DIFaddend\s*)' +
+        self.rPreamble = (r'%DIF PREAMBLE EXTENSION ADDED BY LATEXDIFF.*' +
+                          r'%DIF END PREAMBLE EXTENSION ADDED BY LATEXDIFF\n')
+        self.rxPreamble = re.compile(self.rPreamble,
+                                     flags=re.DOTALL)
+        self.rxStray = (r'(\\DIFaddbegin\s*)|(\\DIFaddend\s*)' +
                         r'(\\DIFdelbegin\s*)|(\\DIFdelend\s*)')
 
     def diff(self, args):
@@ -220,6 +222,7 @@ class Zaphod:
     def revise(self, args):
         """Do the revise part."""
         self.filelist = self.get_modified_latex_files()
+        self.originalfilelist = self.filelist
         while len(self.filelist) > 0:
             while True:
                 print("LaTeX files with annotations:")
@@ -231,6 +234,7 @@ class Zaphod:
 
                 if filenumber.isalpha():
                     if filenumber == 'Q' or filenumber == 'q':
+                        self.remove_preamble()
                         self.generate_pdf("accepted")
                         self.save_changes()
 
@@ -257,19 +261,20 @@ class Zaphod:
             with open(filetorevise, "r") as thisfile:
                 filetext = thisfile.read()
 
-            # Replace preamble additions
-            filetext = re.sub(pattern=self.rpPreamble,
-                              repl='',
-                              string=filetext,
-                              flags=re.DOTALL)
-
             print("Working on file: {}.".format(filetorevise))
             while head < len(filetext):
                 # what's next - addition or deletion?
                 del_start = 0
-                delcheck = self.rpDelbegin.search(filetext[head:])
+                delcheck = self.rxDelbegin.search(filetext[head:])
                 add_start = 0
-                addcheck = self.rpAddbegin.search(filetext[head:])
+                addcheck = self.rxAddbegin.search(filetext[head:])
+                preamble_start = 0
+                preamblecheck = self.rxPreamble.search(filetext[head:])
+
+                if preamblecheck is None:
+                    preamble_start = len(filetext)
+                else:
+                    preamble_start = preamblecheck.start()
                 if delcheck is None:
                     del_start = len(filetext)
                 else:
@@ -285,13 +290,22 @@ class Zaphod:
                     # print("{}, {}".format(del_start, add_start))
                     break
 
+                # Skip preamble here - remove it at the end if required
+                if preamble_start < del_start and preamble_start < add_start:
+                    tail = head + preamblecheck.end()
+                    revisedfiletext += filetext[head:tail]
+                    head = tail
+                    print("latexdiff preamble found and ignored.\n" +
+                          "Will be removed later if required.")
+                    continue
+
                 if del_start < add_start:
                     # It's a deletion
                     head = del_start + tail
                     revisedfiletext += filetext[tail:head]
-                    tail = (self.rpDelbegin.search(filetext[head:]).end() +
+                    tail = (self.rxDelbegin.search(filetext[head:]).end() +
                             head)
-                    head = (self.rpDelend.search(filetext[tail:]).start() +
+                    head = (self.rxDelend.search(filetext[tail:]).start() +
                             tail)
                     deletion = filetext[tail:head]
                     deletion = re.sub(r'\\DIFdel\{(.*?)\}', r'\1', deletion,
@@ -300,32 +314,53 @@ class Zaphod:
                         filetorevise))
                     print("Deletion found:\n---\n{}\n---".format(deletion))
                     while True:
-                        userinput = input("Delete? Y/N/Q/y/n/q: ")
+                        userinput = input("Accept deletion? Y/N/Q/y/n/q: ")
                         if not userinput.isalpha():
                             print("\nInvalid input. Try again.\n")
                             continue
 
                         if userinput == "Y" or userinput == "y":
-                            print("Deleted.")
+                            print("Deletion accepted.\n")
                             break
                         elif userinput == "N" or userinput == "n":
-                            print("Skipped.")
+                            print("Ignored.")
                             revisedfiletext += deletion
                             break
                         elif userinput == "Q" or userinput == "q":
+                            while True:
+                                savepartial = input(
+                                    "Save partial file? Y/N/y/n: ")
+                                if not savepartial.isalpha():
+                                    print("\nInvalid input. Try again.\n")
+                                    continue
+
+                                if savepartial == "Y" or savepartial == "y":
+                                    revisedfiletext += filetext[head:]
+                                    outputfile = open(filetorevise, 'w')
+                                    outputfile.write(revisedfiletext)
+                                    outputfile.close()
+                                    self.modifiedfiles += [filetorevise]
+                                    break
+                                elif savepartial == "N" or savepartial == "n":
+                                    print("\nDiscarding changes.")
+                                    break
+                                else:
+                                    print("\nInvalid input. Try again.\n")
+
+                            self.remove_preamble()
                             self.generate_pdf("accepted")
                             self.save_changes()
                         else:
                             print("\nInvalid input. Try again.\n")
-                    head = (self.rpDelend.search(filetext[tail:]).end() + tail)
+                    head = (self.rxDelend.search(filetext[tail:]).end() + tail)
                     tail = head
                 else:
                     # It's an addition
                     head = add_start + tail
                     revisedfiletext += filetext[tail:head]
-                    tail = (self.rpAddbegin.search(filetext[head:]).end() +
+                    tail = (self.rxAddbegin.search(filetext[head:]).end() +
                             head)
-                    head = (self.rpAddend.search(filetext[tail:]).start() +
+                    head = (self.rxAddend.search(filetext[tail:]).start() +
                             tail)
                     addition = filetext[tail:head]
                     addition = re.sub(r'\\DIFadd\{(.*?)\}', r'\1', addition,
@@ -334,24 +369,45 @@ class Zaphod:
                         filetorevise))
                     print("Addition found:\n+++\n{}\n+++".format(addition))
                     while True:
-                        userinput = input("Add? Y/N/Q/y/n/q: ")
+                        userinput = input("Accept addition? Y/N/Q/y/n/q: ")
                         if not userinput.isalpha():
                             print("\nInvalid input. Try again.\n")
                             continue
 
                         if userinput == "Y" or userinput == "y":
-                            print("Added.")
+                            print("Addition accepted.\n")
                             revisedfiletext += addition
                             break
                         elif userinput == "N" or userinput == "n":
-                            print("Skipped.")
+                            print("Ignored.")
                             break
                         elif userinput == "Q" or userinput == "q":
+                            while True:
+                                savepartial = input(
+                                    "Save partial file? Y/N/y/n: ")
+                                if not savepartial.isalpha():
+                                    print("\nInvalid input. Try again.\n")
+                                    continue
+
+                                if savepartial == "Y" or savepartial == "y":
+                                    revisedfiletext += filetext[head:]
+                                    outputfile = open(filetorevise, 'w')
+                                    outputfile.write(revisedfiletext)
+                                    outputfile.close()
+                                    self.modifiedfiles += [filetorevise]
+                                    break
+                                elif savepartial == "N" or savepartial == "n":
+                                    print("\nDiscarding changes.")
+                                    break
+                                else:
+                                    print("\nInvalid input. Try again.\n")
+
+                            self.remove_preamble()
                             self.generate_pdf("accepted")
                             self.save_changes()
                         else:
                             print("\nInvalid input. Try again.\n")
-                    head = (self.rpAddend.search(filetext[tail:]).end() + tail)
+                    head = (self.rxAddend.search(filetext[tail:]).end() + tail)
                     tail = head
 
             outputfile = open(filetorevise, 'w')
@@ -361,9 +417,36 @@ class Zaphod:
             print("======\nFile {} revised and saved.\n".format(filetorevise))
             self.filelist.remove(filetorevise)
 
-        # Generate pdf
+        # Only remove preamble when all files have been modified, otherwise,
+        # the pdf won't generate properly - no latexdiff commands will function
+        # without the preamble
+        self.remove_preamble()
         self.generate_pdf("accepted")
         self.save_changes()
+
+    def remove_preamble(self):
+        """Remove latexdiff preamble when all files have been revised."""
+        # Confirm that no files now have annotations
+        modifiedfiles = self.get_modified_latex_files()
+        if modifiedfiles is None:
+            print("All files have been revised.\n" +
+                  "Removing latexdiff preamble additions.")
+            for filetorevise in self.modifiedfiles:
+                with open(filetorevise, "r") as thisfile:
+                    filetext = thisfile.read()
+
+                # Replace preamble additions
+                filetext = re.sub(pattern=self.rPreamble,
+                                  repl='',
+                                  string=filetext,
+                                  flags=re.DOTALL)
+
+                outputfile = open(filetorevise, 'w')
+                outputfile.write(filetext)
+                outputfile.close()
+        else:
+            print("Some files still have latexdiff annotations.\n" +
+                  "Not deleting latexdiff preamble additions.")
 
     def save_changes(self):
         """Commit changes."""
@@ -468,17 +551,17 @@ class Zaphod:
             with open(filetorevise, "r") as thisfile:
                 filetext = thisfile.read()
 
-            # Replace preamble additions
-            filetext = re.sub(pattern=self.rpPreamble,
+            # Ignore preamble
+            filetext = re.sub(pattern=self.rPreamble,
                               repl='',
                               string=filetext,
                               flags=re.DOTALL)
 
             # Check for annotations
             del_start = 0
-            delcheck = self.rpDelbegin.search(filetext[:])
+            delcheck = self.rxDelbegin.search(filetext[:])
             add_start = 0
-            addcheck = self.rpAddbegin.search(filetext[:])
+            addcheck = self.rxAddbegin.search(filetext[:])
             if delcheck is None:
                 del_start = len(filetext)
             else:
@@ -606,7 +689,7 @@ class Zaphod:
 
         if rpModified.search(ps.decode("ascii")) is not None or \
                 rpUntracked.search(ps.decode("ascii")) is not None:
-            print("Modifed or untracked files found files found.\n" +
+            print("Modifed or untracked files found.\n" +
                   "git status output:\n" +
                   ps.decode("ascii") +
                   "\nPlease stash or commit and rerun Zaphod.",
