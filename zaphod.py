@@ -508,7 +508,16 @@ class Zaphod:
                     command = (self.pdflatexCommand +
                                ("-jobname=" + filename).split() +
                                [self.optionsDict['main']])
-                    subprocess.call(command, cwd=self.optionsDict['subdir'])
+                    try:
+                        subprocess.check_call(command,
+                                              cwd=self.optionsDict['subdir'])
+                    except subprocess.CalledProcessError as E:
+                        zprint("pdflatex failed. Output below:")
+                        if E.output:
+                            print(E.output)
+                        if E.stderr:
+                            print(E.stderr)
+                        return -1
 
                     if self.optionsDict['citations']:
                         self.zprint("User has specified citations -" +
