@@ -195,8 +195,8 @@ class Zaphod:
             changedtext = subprocess.check_output(command)
             if changedtext is None:
                 print("Something went wrong " +
-                      "- not modifying file: {}\n".format(self.filelist[i]) +
-                      "Exiting!", file=stderr)
+                      "- not annotating file: {}\n".format(self.filelist[i]),
+                      file=stderr)
             else:
                 newfile = open(self.filelist[i], 'w')
                 newfile.write(changedtext.decode("ascii"))
@@ -215,12 +215,11 @@ class Zaphod:
                                             + self.optionsDict['rev2']])
         subprocess.call(command)
 
-        self.zprint("\nCOMPLETE: The following branches have been created:\n" +
-                    self.rev1Branch + ": Revision 1.\n" +
-                    self.rev2Branch + ": Revision 2.\n" +
-                    self.finalBranch +
-                    ": Branch with annotated versions of sources" +
-                    " and diff pdf.\n")
+        self.zprint("The following branches have been created:")
+        self.zprint(self.rev1Branch + ": Revision 1.")
+        self.zprint(self.rev2Branch + ": Revision 2.")
+        self.zprint(self.finalBranch +
+                    ": Branch with annotated versions of sources")
 
     def revise(self, args):
         """Do the revise part."""
