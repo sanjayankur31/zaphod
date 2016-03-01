@@ -201,6 +201,7 @@ class Zaphod:
                 newfile = open(self.filelist[i], 'w')
                 newfile.write(changedtext.decode("ascii"))
                 newfile.close()
+                self.modifiedfiles += [self.filelist[i]]
 
             os.remove(self.rev1filelist[i])
             os.remove(self.rev2filelist[i])
