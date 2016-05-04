@@ -512,7 +512,7 @@ class Zaphod:
                         subprocess.check_call(command,
                                               cwd=self.optionsDict['subdir'])
                     except subprocess.CalledProcessError as E:
-                        zprint("pdflatex failed. Output below:")
+                        self.zprint("pdflatex failed. Output below:")
                         if E.output:
                             print(E.output)
                         if E.stderr:
