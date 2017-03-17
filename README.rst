@@ -3,7 +3,6 @@ Zaphod
 
 A LaTeX change tracking tool.
 
-
 .. image:: https://img.shields.io/github/license/sanjayankur31/zaphod.svg
     :target: https://github.com/sanjayankur31/zaphod/blob/master/LICENSE
     :alt: GPLv3 Licensed
@@ -43,7 +42,7 @@ https://github.com/sanjayankur31/latex-changes
 Usage
 =====
 
-.. code::
+.. code:: bash
 
     usage: zaphod [-h] {revise,diff} ...
 
