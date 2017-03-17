@@ -48,7 +48,7 @@ Usage
 
     positional arguments:
       {revise,diff}  additional help
-        revise       Interactive revision (UNIMPLEMENTED)
+        revise       Interactive revision
         diff         Generate changes output
 
     optional arguments:
