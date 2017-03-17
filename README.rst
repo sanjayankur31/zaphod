@@ -8,6 +8,7 @@ Zaphod
 
 .. image:: https://img.shields.io/github/issues/sanjayankur31/zaphod.svg
     :target: https://github.com/sanjayankur31/zaphod/issues
+
 |
 
 A LaTeX change tracking tool.
