@@ -1,6 +1,9 @@
 Zaphod
 ------
 
+A LaTeX change tracking tool.
+
+
 .. image:: https://img.shields.io/github/license/sanjayankur31/zaphod.svg
     :target: https://github.com/sanjayankur31/zaphod/blob/master/LICENSE
     :alt: GPLv3 Licensed
@@ -13,9 +16,6 @@ Zaphod
     :target: https://github.com/sanjayankur31/zaphod/issues
     :alt: Issues
 
-|
-
-A LaTeX change tracking tool.
 
 The name
 ========
@@ -43,7 +43,7 @@ https://github.com/sanjayankur31/latex-changes
 Usage
 =====
 
-::
+.. code::
 
     usage: zaphod [-h] {revise,diff} ...
 
