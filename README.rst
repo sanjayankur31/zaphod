@@ -1,13 +1,17 @@
 Zaphod
 ------
+
 .. image:: https://img.shields.io/github/license/sanjayankur31/zaphod.svg
     :target: https://github.com/sanjayankur31/zaphod/blob/master/LICENSE
+    :alt: GPLv3 Licensed
 
 .. image:: https://img.shields.io/github/release/sanjayankur31/zaphod.svg
     :target: https://github.com/sanjayankur31/zaphod/releases
+    :alt: Releases
 
 .. image:: https://img.shields.io/github/issues/sanjayankur31/zaphod.svg
     :target: https://github.com/sanjayankur31/zaphod/issues
+    :alt: Issues
 
 |
 
@@ -116,3 +120,4 @@ Usage
                             latexdiff for options.
       -c, --citations       Document contains citations. Will run pdflatex and
                             bibtex as required. Default: False
+
