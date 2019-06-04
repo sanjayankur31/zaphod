@@ -196,10 +196,10 @@ class Zaphod:
             if changedtext is None:
                 print("Something went wrong " +
                       "- not annotating file: {}\n".format(self.filelist[i]),
-                      file=stderr)
+                      file=sys.stderr)
             else:
                 newfile = open(self.filelist[i], 'w')
-                newfile.write(changedtext.decode("ascii"))
+                newfile.write(changedtext.decode('utf-8'))
                 newfile.close()
                 self.modifiedfiles += [self.filelist[i]]
 
@@ -523,8 +523,8 @@ class Zaphod:
                         self.zprint("User has specified citations -" +
                                     " rerunning pdflatex" +
                                     " and bibtex as requird.")
-                        commandb = (self.bibtexCommand +
-                                    [self.optionsDict['main']])
+                        command = (self.bibtexCommand +
+                                   [self.optionsDict['main']])
                         subprocess.call(command,
                                         cwd=self.optionsDict['subdir'])
                         # command is already the pdflatex command
@@ -727,7 +727,7 @@ class Zaphod:
                 os.path.isdir(self.optionsDict['subdir']):
             print("Specified subdirectory not found at {}!\n".format(
                 self.optionsDict['subdir']) +
-                "Please check your arguments.", file=stderr)
+                "Please check your arguments.", file=sys.stderr)
             sys.exit(-4)
 
         if self.optionsDict['main'] and self.optionsDict['subdir'] \
@@ -738,18 +738,18 @@ class Zaphod:
                   (os.path.join(
                       self.optionsDict['subdir'],
                       self.optionsDict['main'])) +
-                  "Please check your arguments.", file=stderr)
+                  "Please check your arguments.", file=sys.stderr)
             sys.exit(-4)
 
         for command in self.commandList:
             if not shutil.which(command):
                 print(command + " not found! Exiting!",
-                      file=stderr)
+                      file=sys.stderr)
                 sys.exit(-5)
 
         if self.optionsDict['citations'] and not shutil.which("bibtex"):
             print("bibtex not found! Exiting!",
-                  file=stderr)
+                  file=sys.stderr)
             sys.exit(-6)
 
     def zprint(self, message):
@@ -769,6 +769,7 @@ class Zaphod:
             self.check_setup()
             print(self.optionsDict)
             self.options.func(self.options)
+
 
 if __name__ == "__main__":
     runner_instance = Zaphod()
