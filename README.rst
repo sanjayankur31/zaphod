@@ -75,7 +75,8 @@ Usage
         *) latexdiff
         *) Git
         *) pdflatex
-        *) bibtex
+        *) latexmk
+        *) bibtex or biber
         *) Python3
 
 

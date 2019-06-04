@@ -83,7 +83,8 @@ class Zaphod:
             *) latexdiff
             *) Git
             *) pdflatex
-            *) bibtex
+            *) latexmk
+            *) bibtex or biber
             *) Python3
 
             """)
@@ -104,8 +105,14 @@ class Zaphod:
         self.gitCheckoutCommand = "git checkout".split()
         self.gitAddCommand = "git add .".split()
         self.gitCommitCommand = "git commit -m".split()
-        self.pdflatexCommand = "pdflatex -interaction batchmode".split()
-        self.bibtexCommand = ["bibtex"]
+        self.latexmkCleanCommand = ('latexmk -C'.split())
+        self.latexmkCommand = (
+            'latexmk -pdf -recorder'.split() + '-synctex=1 -use-make'.split() +
+            ['-pdflatex=pdflatex -interaction=nonstopmode']
+        )
+
+        self.bibFlag = ["-bibtex"]
+        self.nobibFlag = ["-nobibtex"]
 
         # regular expressions for revision
         self.rxDelbegin = re.compile(r'\\DIFdelbegin\s*')
@@ -505,9 +512,30 @@ class Zaphod:
                 generatepdf = input("Generate pdf? Y/y/N/n: ")
 
                 if generatepdf == "Y" or generatepdf == "y":
-                    command = (self.pdflatexCommand +
-                               ("-jobname=" + filename).split() +
-                               [self.optionsDict['main']])
+                    self.zprint("Removing temporary files")
+                    command = (self.latexmkCleanCommand +
+                               ("-jobname=" + filename).split()
+                               + [self.optionsDict['main']])
+                    try:
+                        subprocess.check_call(command,
+                                              cwd=self.optionsDict['subdir'])
+                    except subprocess.CalledProcessError as E:
+                        self.zprint("latexmk -c failed. Output below:")
+                        if E.output:
+                            print(E.output)
+                        if E.stderr:
+                            print(E.stderr)
+                        return -1
+
+                    if self.optionsDict['citations']:
+                        self.zprint("User has specified citations")
+                        command = (self.latexmkCommand + self.bibFlag +
+                                   ("-jobname=" + filename).split() +
+                                   [self.optionsDict['main']])
+                    else:
+                        command = (self.latexmkCommand + self.nobibFlag +
+                                   ("-jobname=" + filename).split() +
+                                   [self.optionsDict['main']])
                     try:
                         subprocess.check_call(command,
                                               cwd=self.optionsDict['subdir'])
@@ -518,20 +546,6 @@ class Zaphod:
                         if E.stderr:
                             print(E.stderr)
                         return -1
-
-                    if self.optionsDict['citations']:
-                        self.zprint("User has specified citations -" +
-                                    " rerunning pdflatex" +
-                                    " and bibtex as requird.")
-                        command = (self.bibtexCommand +
-                                   [self.optionsDict['main']])
-                        subprocess.call(command,
-                                        cwd=self.optionsDict['subdir'])
-                        # command is already the pdflatex command
-                        subprocess.call(command,
-                                        cwd=self.optionsDict['subdir'])
-                        subprocess.call(command,
-                                        cwd=self.optionsDict['subdir'])
 
                     self.zprint("PDF generated: " +
                                 self.optionsDict['subdir'] + "/" +
@@ -703,8 +717,8 @@ class Zaphod:
                                       action="store_true",
                                       default=False,
                                       help="Document contains citations.\n\
-                                      Will run pdflatex and bibtex as \
-                                      required.\nDefault: False"
+                                      Will add -bibtex to latexmk.\n\
+                                      Default: False"
                                       )
 
     def check_setup(self):
@@ -767,7 +781,7 @@ class Zaphod:
         if len(self.optionsDict) != 0:
             # Check for latex files and get a list
             self.check_setup()
-            print(self.optionsDict)
+            #  print(self.optionsDict)
             self.options.func(self.options)
 
 
