@@ -4,7 +4,7 @@ A LaTeX change tracking tool.
 
 File: zaphod.py
 
-Copyright 2016 Ankur Sinha
+Copyright 2020 Ankur Sinha
 Author: Ankur Sinha <sanjay DOT ankur AT gmail DOT com>
 
 This program is free software: you can redistribute it and/or modify
