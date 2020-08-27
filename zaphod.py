@@ -164,6 +164,11 @@ class Zaphod:
             # if a file doesn't exist in this revision, it has been removed, so
             # I create an empty file for latexdiff
             if not os.path.isfile(self.filelist[i]):
+                dirname, filename = os.path.split(self.filelist[i])
+                # also check if the directory structure exists
+                if not os.path.exists(dirname):
+                    os.makedirs(dirname, exist_ok=True)
+                # then create the dummy file
                 open(self.filelist[i], 'a').close()
             os.rename(self.filelist[i], self.rev1filelist[i])
 
