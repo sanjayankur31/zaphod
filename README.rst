@@ -29,10 +29,10 @@ The tool
 A wrapper around `latexdiff <https://github.com/ftilmann/latexdiff>`__ that
 recursively checks changes in LaTeX sources between two Git revisions and
 generates a nice annotated PDF in a new Git branch. This Git branch sits on top
-of the newer revision - after one has accepted/rejected changes, one can remove 
+of the newer revision - after one has accepted/rejected changes, one can remove
 the annotations and simply commit and merge to the master branch - a nice workflow.
 
-It's rather simple at the moment and probably has heaps of issues. Feel free to
+It is rather simple at the moment and probably has heaps of issues. Feel free to
 modify it to suit your purposes and open pull requests.
 
 Here is a test repository with LaTeX sources and a resultant
@@ -60,24 +60,24 @@ Usage
         only works when git is used as a version control system.
 
     Expected workflow:
-        *) Make changes, commit
-        *) Run this program:
+        - Make changes, commit
+        - Run this program:
             It will generate a pdf with differences between the two
             provided Git revisions using latexdiff. It will also commit the
             annotated TeX sources in a new Git branch called "changes".
-            *) Review commits using generated PDF.
-            *) Accept/ignore changes.
-            *) Commit once finished.
-            *) Merge to master branch.
-            *) Profit.
+            - Review commits using generated PDF.
+            - Accept/ignore changes.
+            - Commit once finished.
+            - Merge to master branch.
+            - Profit.
 
     Requires:
-        *) latexdiff
-        *) Git
-        *) pdflatex
-        *) latexmk
-        *) bibtex or biber
-        *) Python3
+        - latexdiff
+        - Git
+        - pdflatex
+        - latexmk
+        - bibtex or biber
+        - Python3
 
 
     Subcommand: 'revise'
@@ -99,25 +99,26 @@ Usage
     Yay! Git!
 
     Subcommand: 'diff'
-    usage: zaphod diff [-h] [-r REV1] [-t REV2] [-m MAIN] [-s SUBDIR] [-e EXCLUDE]
-                       [-p TYPE]
+    usage: zaphod diff [-h] [-r REV1] [-t REV2] [-m MAIN] [-s SUBDIR] [-l LATEXDIFFOPTS] [-c]
 
     optional arguments:
       -h, --help            show this help message and exit
       -r REV1, --rev1 REV1  First revision to diff against
       -t REV2, --rev2 REV2  Second revision to diff with.
       -m MAIN, --main MAIN  Name of main file. Only used to generate final pdf
-                            with changes.
-                            Default: main.tex
+                            with changes. Default: main.tex
+
       -s SUBDIR, --subdir SUBDIR
                             Name of subdirectory where main file resides.
                             Default: .
-      -e EXCLUDE, --exclude EXCLUDE
-                            Pass exclude options to latexdiff. Please read man
-                            latexdiff for information on --exclude-textcmd and
-                            related options.
-      -p TYPE, --type TYPE  Pass markup type option to latexdiff. Please read man
-                            latexdiff for options.
-      -c, --citations       Document contains citations. Will run pdflatex and
-                            bibtex as required. Default: False
 
+      -l LATEXDIFFOPTS, --latexdiffopts LATEXDIFFOPTS
+                            Pass options to latexdiff. Please read man
+                            latexdiff for available options. These must be
+                            enclosed in single quotes to ensure they are passed
+                            to latexdiff without any processing.
+                            Default: --type=UNDERLINE
+
+      -c, --citations       Document contains citations. Will add -bibtex to
+                            latexmk.
+                            Default: True

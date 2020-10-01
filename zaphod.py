@@ -198,9 +198,8 @@ class Zaphod:
 
         # Generate diffs
         for i in range(0, len(self.filelist)):
-            command = (["latexdiff"] + ("--type=" + self.optionsDict['type'] +
-                                        " --exclude-textcmd=" +
-                                        self.optionsDict['exclude']).split() +
+            command = (["latexdiff"] +
+                       self.optionsDict['latexdiffopts'].split() +
                        [self.rev1filelist[i], self.rev2filelist[i]])
             # self.zprint(command)
             changedtext = None
@@ -704,26 +703,23 @@ class Zaphod:
                                       file resides.\n\
                                       Default: ."
                                       )
-        self.diff_parser.add_argument("-e", "--exclude",
-                                      default="\"\"",
+        self.diff_parser.add_argument("-l", "--latexdiffopts",
+                                      default="'--type=UNDERLINE'",
                                       action="store",
-                                      help="Pass exclude options to latexdiff. \
+                                      help="Pass options to latexdiff. \
                                       Please read man latexdiff for \
-                                      information on --exclude-textcmd \
-                                      and related options."
-                                      )
-        self.diff_parser.add_argument("-p", "--type",
-                                      default="UNDERLINE",
-                                      action="store",
-                                      help="Pass markup type option to latexdiff. \
-                                      Please read man latexdiff for options."
+                                      available options.\
+                                      These must be enclosed in single quotes \
+                                      to ensure they're passed to latexdiff \
+                                      without any processing.\
+                                      Default: --type=UNDERLINE"
                                       )
         self.diff_parser.add_argument("-c", "--citations",
                                       action="store_true",
-                                      default=False,
+                                      default=True,
                                       help="Document contains citations.\n\
                                       Will add -bibtex to latexmk.\n\
-                                      Default: False"
+                                      Default: True"
                                       )
 
     def check_setup(self):
