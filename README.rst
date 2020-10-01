@@ -44,12 +44,13 @@ Usage
 
 .. code:: bash
 
-    usage: zaphod [-h] {revise,diff} ...
+    usage: zaphod [-h] {revise,diff,clean} ...
 
     positional arguments:
-      {revise,diff}  additional help
-        revise       Interactive revision
-        diff         Generate changes output
+      {revise,diff,clean}  additional help
+        revise             Interactive revision
+        diff               Generate changes output
+        clean              Clean up Zaphod related branches
 
     optional arguments:
       -h, --help     View subcommand help
