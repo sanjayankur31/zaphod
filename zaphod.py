@@ -92,9 +92,10 @@ class Zaphod:
         self.commandList = ["pdflatex", "latexdiff", "git"]
         self.timenow = datetime.datetime.strftime(datetime.datetime.today(),
                                                   "%Y%m%d%H%M")
-        self.rev1Branch = self.timenow + "-latexdiff-rev1"
-        self.rev2Branch = self.timenow + "-latexdiff-rev2"
-        self.finalBranch = self.timenow + "-latexdiff-annotated"
+        self.branchSpec = "-zaphod-"
+        self.rev1Branch = self.timenow + self.branchSpec + "rev1"
+        self.rev2Branch = self.timenow + self.branchSpec + "rev2"
+        self.finalBranch = self.timenow + self.branchSpec + "annotated"
 
         self.filelist = []
         self.rev1filelist = []
@@ -102,9 +103,11 @@ class Zaphod:
         self.modifiedfiles = []
 
         self.gitResetCommand = "git reset HEAD --hard".split()
-        self.gitCheckoutCommand = "git checkout".split()
+        self.gitCheckoutCommand = "git checlatexdiffkout".split()
         self.gitAddCommand = "git add .".split()
         self.gitCommitCommand = "git commit -m".split()
+        self.gitBranchCommand = "git branch".split()
+        self.gitBranchDeleteCommand = "git branch -D".split()
         self.latexmkCleanCommand = ('latexmk -C'.split())
         self.latexmkCommand = (
             'latexmk -pdf -recorder'.split() + '-synctex=1 -use-make'.split() +
@@ -217,7 +220,7 @@ class Zaphod:
             os.remove(self.rev1filelist[i])
             os.remove(self.rev2filelist[i])
 
-        self.generate_pdf("diff-" + self.optionsDict['rev1'] + "-" +
+        self.generate_pdf("zaphod-diff-" + self.optionsDict['rev1'] + "-" +
                           self.optionsDict['rev2'])
 
         subprocess.call(self.gitAddCommand)
@@ -454,6 +457,35 @@ class Zaphod:
         self.remove_preamble()
         self.generate_pdf("accepted")
         self.save_changes()
+
+    def clean(self, args):
+        """
+        Remove all branches created by Zaphod.
+        """
+        self.zprint("Getting branch list.")
+        command = (self.gitBranchCommand)
+        ps = subprocess.check_output(command)
+
+        branches = ps.decode("ascii").split('\n')
+        zaphodBranches = 0
+        for line in branches:
+            branchName = line.strip().replace("* ", "")
+            if self.branchSpec in branchName:
+                zaphodBranches += 1
+                self.zprint(f"Found a zaphod branch: {branchName}")
+                command = (self.gitBranchDeleteCommand + [branchName])
+                if self.optionsDict['yes']:
+                    self.zprint(f"Deleting branch {branchName}")
+                    subprocess.call(command)
+                else:
+                    deletebranch = input("Delete branch? Y/y/N/n: ")
+                    if deletebranch == "Y" or deletebranch == "y":
+                        subprocess.call(command)
+                    else:
+                        self.zprint(f"Skipping branch {branchName}")
+
+        if zaphodBranches == 0:
+            self.zprint("No Zaphod branches found.")
 
     def remove_preamble(self):
         """Remove latexdiff preamble when all files have been revised."""
@@ -722,6 +754,21 @@ class Zaphod:
                                       Default: True"
                                       )
 
+        self.clean_parser = self.subparser.add_parser(
+            "clean",
+            formatter_class=argparse.RawDescriptionHelpFormatter,
+            help="Clean up Zaphod related branches\n",
+        )
+        self.clean_parser.set_defaults(func=self.clean)
+        self.clean_parser.add_argument("-y", "--yes",
+                                       action="store_true",
+                                       default=False,
+                                       help="Assume yes \
+                                       Please be careful when using \
+                                       this option. \
+                                       Default: False"
+                                       )
+
     def check_setup(self):
         """Check if Git directory is clean."""
         command = "git status --porcelain".split()
@@ -738,15 +785,15 @@ class Zaphod:
                   file=sys.stderr)
             sys.exit(-3)
 
-        if self.optionsDict['subdir'] and not \
-                os.path.isdir(self.optionsDict['subdir']):
+        if 'subdir' in self.optionsDict and self.optionsDict['subdir'] \
+                and not os.path.isdir(self.optionsDict['subdir']):
             print("Specified subdirectory not found at {}!\n".format(
                 self.optionsDict['subdir']) +
                 "Please check your arguments.", file=sys.stderr)
             sys.exit(-4)
 
-        if self.optionsDict['main'] and self.optionsDict['subdir'] \
-                and not \
+        if 'main' in self.optionsDict and self.optionsDict['main'] \
+                and self.optionsDict['subdir'] and not \
                 os.path.isfile(os.path.join(self.optionsDict['subdir'],
                                             self.optionsDict['main'])):
             print("Specified main file not found at {}!\n".format
@@ -762,7 +809,8 @@ class Zaphod:
                       file=sys.stderr)
                 sys.exit(-5)
 
-        if self.optionsDict['citations'] and not shutil.which("bibtex"):
+        if 'citations' in self.optionsDict and \
+                self.optionsDict['citations'] and not shutil.which("bibtex"):
             print("bibtex not found! Exiting!",
                   file=sys.stderr)
             sys.exit(-6)

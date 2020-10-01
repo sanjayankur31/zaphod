@@ -122,3 +122,11 @@ Usage
       -c, --citations       Document contains citations. Will add -bibtex to
                             latexmk.
                             Default: True
+
+
+    Subcommand: 'clean'
+    usage: zaphod clean [-h] [-y]
+
+    optional arguments:
+      -h, --help  show this help message and exit
+      -y, --yes   Assume yes Please be careful when using this option. Default: False
