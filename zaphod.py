@@ -736,7 +736,7 @@ class Zaphod:
                                       Default: ."
                                       )
         self.diff_parser.add_argument("-l", "--latexdiffopts",
-                                      default="'--type=UNDERLINE'",
+                                      default="--type=UNDERLINE",
                                       action="store",
                                       help="Pass options to latexdiff. \
                                       Please read man latexdiff for \
