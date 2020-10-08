@@ -103,7 +103,7 @@ class Zaphod:
         self.modifiedfiles = []
 
         self.gitResetCommand = "git reset HEAD --hard".split()
-        self.gitCheckoutCommand = "git checlatexdiffkout".split()
+        self.gitCheckoutCommand = "git checkout".split()
         self.gitAddCommand = "git add .".split()
         self.gitCommitCommand = "git commit -m".split()
         self.gitBranchCommand = "git branch".split()
