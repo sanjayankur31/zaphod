@@ -30,10 +30,10 @@ import fnmatch
 import re
 import datetime
 import shutil
+import logging
 
 
 class _HelpAction(argparse._HelpAction):
-
     """
     Custom help handler.
 
@@ -46,17 +46,18 @@ class _HelpAction(argparse._HelpAction):
         print("\n")
 
         subparsers_actions = [
-            action for action in parser._actions
-            if isinstance(action, argparse._SubParsersAction)]
+            action
+            for action in parser._actions
+            if isinstance(action, argparse._SubParsersAction)
+        ]
         for subparsers_action in subparsers_actions:
             for choice, subparser in subparsers_action.choices.items():
-                print("Subcommand: '{}'".format(choice))
+                print(f"Subcommand: '{choice}'")
                 print(subparser.format_help())
 
 
 class Zaphod:
-
-    """Something something."""
+    """Main application class"""
 
     def __init__(self):
         """Init method."""
@@ -87,11 +88,13 @@ class Zaphod:
             *) bibtex or biber
             *) Python3
 
-            """)
+            """
+        )
 
         self.commandList = ["pdflatex", "latexdiff", "git"]
-        self.timenow = datetime.datetime.strftime(datetime.datetime.today(),
-                                                  "%Y%m%d%H%M")
+        self.timenow = datetime.datetime.strftime(
+            datetime.datetime.today(), "%Y%m%d%H%M"
+        )
         self.branchSpec = "-zaphod-"
         self.rev1Branch = self.timenow + self.branchSpec + "rev1"
         self.rev2Branch = self.timenow + self.branchSpec + "rev2"
@@ -108,59 +111,77 @@ class Zaphod:
         self.gitCommitCommand = "git commit -m".split()
         self.gitBranchCommand = "git branch".split()
         self.gitBranchDeleteCommand = "git branch -D".split()
-        self.latexmkCleanCommand = ('latexmk -C'.split())
+        self.latexmkCleanCommand = "latexmk -C".split()
         self.latexmkCommand = (
-            'latexmk -pdf -recorder'.split() + '-synctex=1 -use-make'.split() +
-            ['-pdflatex=pdflatex -interaction=nonstopmode']
+            "latexmk -pdf -recorder".split()
+            + "-synctex=1 -use-make".split()
+            + ["-pdflatex=pdflatex -interaction=nonstopmode"]
         )
 
         self.bibFlag = ["-bibtex"]
         self.nobibFlag = ["-nobibtex"]
 
         # regular expressions for revision
-        self.rxDelbegin = re.compile(r'\\DIFdelbegin\s*')
-        self.rxDelend = re.compile(r'\\DIFdelend\s*')
+        self.rxDelbegin = re.compile(r"\\DIFdelbegin\s*")
+        self.rxDelend = re.compile(r"\\DIFdelend\s*")
 
-        self.rxAddbegin = re.compile(r'\\DIFaddbegin\s*')
-        self.rxAddend = re.compile(r'\\DIFaddend\s*')
+        self.rxAddbegin = re.compile(r"\\DIFaddbegin\s*")
+        self.rxAddend = re.compile(r"\\DIFaddend\s*")
 
-        self.rPreamble = (r'%DIF PREAMBLE EXTENSION ADDED BY LATEXDIFF.*' +
-                          r'%DIF END PREAMBLE EXTENSION ADDED BY LATEXDIFF\n')
-        self.rxPreamble = re.compile(self.rPreamble,
-                                     flags=re.DOTALL)
-        self.rxStray = (r'(\\DIFaddbegin\s*)|(\\DIFaddend\s*)' +
-                        r'(\\DIFdelbegin\s*)|(\\DIFdelend\s*)')
+        self.rPreamble = (
+            r"%DIF PREAMBLE EXTENSION ADDED BY LATEXDIFF.*"
+            + r"%DIF END PREAMBLE EXTENSION ADDED BY LATEXDIFF\n"
+        )
+        self.rxPreamble = re.compile(self.rPreamble, flags=re.DOTALL)
+        self.rxStray = (
+            r"(\\DIFaddbegin\s*)|(\\DIFaddend\s*)"
+            + r"(\\DIFdelbegin\s*)|(\\DIFdelend\s*)"
+        )
+
+        # set up a logger
+        self.logger = logging.getLogger("zaphod")
+        self.logger.setLevel(logging.INFO)
+        ch = logging.StreamHandler()
+        ch.setLevel(logging.INFO)
+        formatter = logging.Formatter(
+            "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+        )
+        ch.setFormatter(formatter)
+        self.logger.addHandler(ch)
+        self.logger.propagate = False
 
     def diff(self, args):
         """Do the diff part."""
         # Get all latex files in rev1
-        command = (self.gitCheckoutCommand + (" -b " +
-                                              self.rev1Branch).split() +
-                   [self.optionsDict['rev1']])
+        command = (
+            self.gitCheckoutCommand
+            + (" -b " + self.rev1Branch).split()
+            + [self.optionsDict["rev1"]]
+        )
         p = subprocess.Popen(command)
         p.wait()
         self.zprint("Generating full file list.")
         self.filelist += self.get_latex_files()
 
         # Get all latex files in rev2
-        command = (self.gitCheckoutCommand + (" -b " +
-                                              self.rev2Branch).split() +
-                   [self.optionsDict['rev2']])
+        command = (
+            self.gitCheckoutCommand
+            + (" -b " + self.rev2Branch).split()
+            + [self.optionsDict["rev2"]]
+        )
         p = subprocess.Popen(command)
         p.wait()
         self.filelist += self.get_latex_files()
         # remove duplicates
         self.filelist = list(set(self.filelist))
-        self.zprint("File list generated:\n{}".format(self.filelist))
+        self.zprint(f"File list generated:\n{self.filelist}")
 
         # Now that we have a complete list, we get to work
-        self.zprint("Checking out revision 1: {}".format(
-            self.optionsDict['rev1']))
-        command = (self.gitCheckoutCommand + [self.rev1Branch])
+        self.zprint(f"Checking out revision 1: {self.optionsDict['rev1']}")
+        command = self.gitCheckoutCommand + [self.rev1Branch]
         p = subprocess.Popen(command)
         p.wait()
-        self.rev1filelist = self.generate_rev_filenames(
-            self.optionsDict['rev1'])
+        self.rev1filelist = self.generate_rev_filenames(self.optionsDict["rev1"])
 
         # Rename files
         for i in range(0, len(self.filelist)):
@@ -172,13 +193,12 @@ class Zaphod:
                 if not os.path.exists(dirname):
                     os.makedirs(dirname, exist_ok=True)
                 # then create the dummy file
-                open(self.filelist[i], 'a').close()
+                open(self.filelist[i], "a").close()
             os.rename(self.filelist[i], self.rev1filelist[i])
 
         # Check out revision 2
-        self.zprint("Checking out revision 2: {}".format(
-            self.optionsDict['rev2']))
-        command = (self.gitCheckoutCommand + [self.rev2Branch])
+        self.zprint(f"Checking out revision 2: {self.optionsDict['rev2']}")
+        command = self.gitCheckoutCommand + [self.rev2Branch]
         p = subprocess.Popen(command)
         p.wait()
 
@@ -186,55 +206,63 @@ class Zaphod:
         subprocess.call(self.gitResetCommand)
 
         self.zprint("Checking out branch to save changes.")
-        command = (self.gitCheckoutCommand + (" -b " +
-                                              self.finalBranch).split() +
-                   [self.rev2Branch])
+        command = (
+            self.gitCheckoutCommand
+            + (" -b " + self.finalBranch).split()
+            + [self.rev2Branch]
+        )
         subprocess.call(command)
 
-        self.rev2filelist = self.generate_rev_filenames(
-            self.optionsDict['rev2'])
+        self.rev2filelist = self.generate_rev_filenames(self.optionsDict["rev2"])
         # Rename files
         for i in range(0, len(self.filelist)):
             if not os.path.isfile(self.filelist[i]):
-                open(self.filelist[i], 'a').close()
+                open(self.filelist[i], "a").close()
             os.rename(self.filelist[i], self.rev2filelist[i])
 
         # Generate diffs
         for i in range(0, len(self.filelist)):
-            command = (["latexdiff"] +
-                       self.optionsDict['latexdiffopts'].split() +
-                       [self.rev1filelist[i], self.rev2filelist[i]])
+            command = (
+                ["latexdiff"]
+                + self.optionsDict["latexdiffopts"].split()
+                + [self.rev1filelist[i], self.rev2filelist[i]]
+            )
             # self.zprint(command)
             changedtext = None
             changedtext = subprocess.check_output(command)
             if changedtext is None:
-                print("Something went wrong " +
-                      "- not annotating file: {}\n".format(self.filelist[i]),
-                      file=sys.stderr)
+                self.logger.error(
+                    "Something went wrong "
+                    + f"- not annotating file: {self.filelist[i]}\n",
+                    file=sys.stderr,
+                )
             else:
-                newfile = open(self.filelist[i], 'w')
-                newfile.write(changedtext.decode('utf-8'))
+                newfile = open(self.filelist[i], "w")
+                newfile.write(changedtext.decode("utf-8"))
                 newfile.close()
                 self.modifiedfiles += [self.filelist[i]]
 
             os.remove(self.rev1filelist[i])
             os.remove(self.rev2filelist[i])
 
-        self.generate_pdf("zaphod-diff-" + self.optionsDict['rev1'] + "-" +
-                          self.optionsDict['rev2'])
+        self.generate_pdf(
+            "zaphod-diff-" + self.optionsDict["rev1"] + "-" + self.optionsDict["rev2"]
+        )
 
         subprocess.call(self.gitAddCommand)
 
-        command = (self.gitCommitCommand + ["Save annotated changes between " +
-                                            self.optionsDict['rev1'] + " and "
-                                            + self.optionsDict['rev2']])
+        command = self.gitCommitCommand + [
+            "Save annotated changes between "
+            + self.optionsDict["rev1"]
+            + " and "
+            + self.optionsDict["rev2"]
+        ]
         subprocess.call(command)
 
         self.zprint("The following branches have been created:")
         self.zprint(self.rev1Branch + ": Revision 1.")
         self.zprint(self.rev2Branch + ": Revision 2.")
-        self.zprint(self.finalBranch +
-                    ": Branch with annotated versions of sources")
+        self.zprint(self.finalBranch + ": Branch with annotated versions of sources")
 
     def revise(self, args):
         """Do the revise part."""
@@ -244,15 +272,14 @@ class Zaphod:
             while True:
                 self.zprint("LaTeX files with annotations:")
                 for i in range(0, len(self.filelist)):
-                    print("[{}] {}".format(i+1, self.filelist[i]))
+                    print(f"[{(i + 1)}] {self.filelist[i]}")
 
                 print()
-                filenumber = input("Pick file to revise? " +
-                                   "1-{}/Q/q: ".format(len(self.filelist)))
+                filenumber = input(f"Pick file to revise? 1-{len(self.filelist)}/Q/q: ")
                 print()
 
                 if filenumber.isalpha():
-                    if filenumber == 'Q' or filenumber == 'q':
+                    if filenumber == "Q" or filenumber == "q":
                         self.remove_preamble()
                         self.generate_pdf("accepted")
                         self.save_changes()
@@ -319,14 +346,13 @@ class Zaphod:
                     # It's a deletion
                     head = del_start + tail
                     revisedfiletext += filetext[tail:head]
-                    tail = (self.rxDelbegin.search(filetext[head:]).end() +
-                            head)
-                    head = (self.rxDelend.search(filetext[tail:]).start() +
-                            tail)
+                    tail = self.rxDelbegin.search(filetext[head:]).end() + head
+                    head = self.rxDelend.search(filetext[tail:]).start() + tail
                     deletion = filetext[tail:head]
-                    deletion = re.sub(r'\\DIFdel\{(.*?)\}', r'\1', deletion,
-                                      flags=re.DOTALL)
-                    print("====== {} ======".format(filetorevise))
+                    deletion = re.sub(
+                        r"\\DIFdel\{(.*?)\}", r"\1", deletion, flags=re.DOTALL
+                    )
+                    print(f"====== {filetorevise} ======")
                     print("--- Deletion found ---")
                     print(deletion)
                     print("--- Deletion found ---")
@@ -348,49 +374,42 @@ class Zaphod:
                         elif userinput == "Q" or userinput == "q":
                             if self.modified:
                                 while True:
-                                    savepartial = input(
-                                        "Save partial file? Y/N/y/n: ")
+                                    savepartial = input("Save partial file? Y/N/y/n: ")
                                     if not savepartial.isalpha():
-                                        self.zprint("Invalid input." +
-                                                    "Try again.")
+                                        self.zprint("Invalid input." + "Try again.")
                                         continue
 
-                                    if savepartial == "Y" \
-                                            or savepartial == "y":
+                                    if savepartial == "Y" or savepartial == "y":
                                         revisedfiletext += filetext[head:]
-                                        outputfile = open(filetorevise, 'w')
+                                        outputfile = open(filetorevise, "w")
                                         outputfile.write(revisedfiletext)
                                         outputfile.close()
                                         self.modifiedfiles += [filetorevise]
                                         break
-                                    elif savepartial == "N" \
-                                            or savepartial == "n":
+                                    elif savepartial == "N" or savepartial == "n":
                                         self.zprint("Discarding changes.")
                                         break
                                     else:
-                                        self.zprint("Invalid input. " +
-                                                    "Try again.")
+                                        self.zprint("Invalid input. " + "Try again.")
 
                             self.generate_pdf("accepted")
                             self.save_changes()
                         else:
                             self.zprint("Invalid input. Try again.")
 
-                    head = (self.rxDelend.search(filetext[tail:]).end()
-                            + tail)
+                    head = self.rxDelend.search(filetext[tail:]).end() + tail
                     tail = head
                 else:
                     # It's an addition
                     head = add_start + tail
                     revisedfiletext += filetext[tail:head]
-                    tail = (self.rxAddbegin.search(filetext[head:]).end() +
-                            head)
-                    head = (self.rxAddend.search(filetext[tail:]).start() +
-                            tail)
+                    tail = self.rxAddbegin.search(filetext[head:]).end() + head
+                    head = self.rxAddend.search(filetext[tail:]).start() + tail
                     addition = filetext[tail:head]
-                    addition = re.sub(r'\\DIFadd\{(.*?)\}', r'\1', addition,
-                                      flags=re.DOTALL)
-                    print("====== {} ======".format(filetorevise))
+                    addition = re.sub(
+                        r"\\DIFadd\{(.*?)\}", r"\1", addition, flags=re.DOTALL
+                    )
+                    print(f"====== {filetorevise} ======")
                     print("+++ Addition found +++")
                     print(addition)
                     print("+++ Addition found +++")
@@ -412,43 +431,37 @@ class Zaphod:
                         elif userinput == "Q" or userinput == "q":
                             if self.modified:
                                 while True:
-                                    savepartial = input(
-                                        "Save partial file? Y/N/y/n: ")
+                                    savepartial = input("Save partial file? Y/N/y/n: ")
                                     if not savepartial.isalpha():
-                                        self.zprint("Invalid input." +
-                                                    " Try again.")
+                                        self.zprint("Invalid input." + " Try again.")
                                         continue
 
-                                    if savepartial == "Y" \
-                                            or savepartial == "y":
+                                    if savepartial == "Y" or savepartial == "y":
                                         revisedfiletext += filetext[head:]
-                                        outputfile = open(filetorevise, 'w')
+                                        outputfile = open(filetorevise, "w")
                                         outputfile.write(revisedfiletext)
                                         outputfile.close()
                                         self.modifiedfiles += [filetorevise]
                                         break
-                                    elif savepartial == "N" \
-                                            or savepartial == "n":
+                                    elif savepartial == "N" or savepartial == "n":
                                         self.zprint("Discarding changes.")
                                         break
                                     else:
-                                        self.zprint("Invalid input. " +
-                                                    "Try again.")
+                                        self.zprint("Invalid input. " + "Try again.")
 
                             self.remove_preamble()
                             self.generate_pdf("accepted")
                             self.save_changes()
                         else:
                             self.zprint("Invalid input. Try again.")
-                    head = (self.rxAddend.search(filetext[tail:]).end()
-                            + tail)
+                    head = self.rxAddend.search(filetext[tail:]).end() + tail
                     tail = head
 
-            outputfile = open(filetorevise, 'w')
+            outputfile = open(filetorevise, "w")
             outputfile.write(revisedfiletext)
             outputfile.close()
             self.modifiedfiles += [filetorevise]
-            self.zprint("File {} revised and saved.".format(filetorevise))
+            self.zprint(f"File {filetorevise} revised and saved.")
             self.filelist.remove(filetorevise)
 
         # Only remove preamble when all files have been modified, otherwise,
@@ -463,18 +476,18 @@ class Zaphod:
         Remove all branches created by Zaphod.
         """
         self.zprint("Getting branch list.")
-        command = (self.gitBranchCommand)
+        command = self.gitBranchCommand
         ps = subprocess.check_output(command)
 
-        branches = ps.decode("ascii").split('\n')
+        branches = ps.decode("ascii").split("\n")
         zaphodBranches = 0
         for line in branches:
             branchName = line.strip().replace("* ", "")
             if self.branchSpec in branchName:
                 zaphodBranches += 1
                 self.zprint(f"Found a zaphod branch: {branchName}")
-                command = (self.gitBranchDeleteCommand + [branchName])
-                if self.optionsDict['yes']:
+                command = self.gitBranchDeleteCommand + [branchName]
+                if self.optionsDict["yes"]:
                     self.zprint(f"Deleting branch {branchName}")
                     subprocess.call(command)
                 else:
@@ -499,18 +512,17 @@ class Zaphod:
                     filetext = thisfile.read()
 
                 # Replace preamble additions
-                filetext = re.sub(pattern=self.rPreamble,
-                                  repl='',
-                                  string=filetext,
-                                  flags=re.DOTALL)
+                filetext = re.sub(
+                    pattern=self.rPreamble, repl="", string=filetext, flags=re.DOTALL
+                )
 
-                outputfile = open(filetorevise, 'w')
+                outputfile = open(filetorevise, "w")
                 outputfile.write(filetext)
                 outputfile.close()
         else:
             self.zprint("Some files still have latexdiff annotations:")
             for i in range(0, len(modifiedfiles)):
-                print("[{}] {}".format(i+1, modifiedfiles[i]))
+                print(f"[{(i + 1)}] {modifiedfiles[i]}")
             print()
 
     def save_changes(self):
@@ -518,7 +530,7 @@ class Zaphod:
         if len(self.modifiedfiles) > 0:
             self.zprint("Following files have been revised (maybe partially):")
             for i in range(0, len(self.modifiedfiles)):
-                print("[{}] {}".format(i+1, self.modifiedfiles[i]))
+                print(f"[{(i + 1)}] {self.modifiedfiles[i]}")
 
             print()
             while True:
@@ -527,7 +539,7 @@ class Zaphod:
                     subprocess.call(self.gitAddCommand)
                     commitmessage = input("Enter commit message: ")
 
-                    command = (self.gitCommitCommand + [commitmessage])
+                    command = self.gitCommitCommand + [commitmessage]
                     subprocess.call(command)
                     self.zprint("Changes committed.\n")
                     break
@@ -549,12 +561,13 @@ class Zaphod:
 
                 if generatepdf == "Y" or generatepdf == "y":
                     self.zprint("Removing temporary files")
-                    command = (self.latexmkCleanCommand +
-                               ("-jobname=" + filename).split()
-                               + [self.optionsDict['main']])
+                    command = (
+                        self.latexmkCleanCommand
+                        + ("-jobname=" + filename).split()
+                        + [self.optionsDict["main"]]
+                    )
                     try:
-                        subprocess.check_call(command,
-                                              cwd=self.optionsDict['subdir'])
+                        subprocess.check_call(command, cwd=self.optionsDict["subdir"])
                     except subprocess.CalledProcessError as E:
                         self.zprint("latexmk -c failed. Output below:")
                         if E.output:
@@ -563,18 +576,23 @@ class Zaphod:
                             print(E.stderr)
                         return -1
 
-                    if self.optionsDict['citations']:
+                    if self.optionsDict["citations"]:
                         self.zprint("User has specified citations")
-                        command = (self.latexmkCommand + self.bibFlag +
-                                   ("-jobname=" + filename).split() +
-                                   [self.optionsDict['main']])
+                        command = (
+                            self.latexmkCommand
+                            + self.bibFlag
+                            + ("-jobname=" + filename).split()
+                            + [self.optionsDict["main"]]
+                        )
                     else:
-                        command = (self.latexmkCommand + self.nobibFlag +
-                                   ("-jobname=" + filename).split() +
-                                   [self.optionsDict['main']])
+                        command = (
+                            self.latexmkCommand
+                            + self.nobibFlag
+                            + ("-jobname=" + filename).split()
+                            + [self.optionsDict["main"]]
+                        )
                     try:
-                        subprocess.check_call(command,
-                                              cwd=self.optionsDict['subdir'])
+                        subprocess.check_call(command, cwd=self.optionsDict["subdir"])
                     except subprocess.CalledProcessError as E:
                         self.zprint("pdflatex failed. Output below:")
                         if E.output:
@@ -583,9 +601,13 @@ class Zaphod:
                             print(E.stderr)
                         return -1
 
-                    self.zprint("PDF generated: " +
-                                self.optionsDict['subdir'] + "/" +
-                                filename + ".pdf")
+                    self.zprint(
+                        "PDF generated: "
+                        + self.optionsDict["subdir"]
+                        + "/"
+                        + filename
+                        + ".pdf"
+                    )
                     break
                 elif generatepdf == "N" or generatepdf == "n":
                     self.zprint("Not generating pdf.")
@@ -596,14 +618,13 @@ class Zaphod:
     def get_latex_files(self):
         """Get list of files with extension .tex."""
         filelist = []
-        for root, dirs, files in os.walk(self.optionsDict['subdir']):
+        for root, dirs, files in os.walk(self.optionsDict["subdir"]):
             for filename in fnmatch.filter(files, "*.tex"):
                 if filename not in filelist:
                     filelist.append(os.path.join(root, filename))
 
         if not len(filelist) > 0:
-            print("No tex files found in this directory",
-                  file=sys.stderr)
+            print("No tex files found in this directory", file=sys.stderr)
             sys.exit(-1)
         # print(filelist)
         return filelist
@@ -612,14 +633,13 @@ class Zaphod:
         """Get list of files with latexdiff annotations."""
         filelist = []
         modified_filelist = []
-        for root, dirs, files in os.walk(self.optionsDict['subdir']):
+        for root, dirs, files in os.walk(self.optionsDict["subdir"]):
             for filename in fnmatch.filter(files, "*.tex"):
                 if filename not in filelist:
                     filelist.append(os.path.join(root, filename))
 
         if not len(filelist) > 0:
-            print("No tex files found in this directory",
-                  file=sys.stderr)
+            print("No tex files found in this directory", file=sys.stderr)
             sys.exit(-1)
 
         for i in range(0, len(filelist)):
@@ -629,10 +649,9 @@ class Zaphod:
                 filetext = thisfile.read()
 
             # Ignore preamble
-            filetext = re.sub(pattern=self.rPreamble,
-                              repl='',
-                              string=filetext,
-                              flags=re.DOTALL)
+            filetext = re.sub(
+                pattern=self.rPreamble, repl="", string=filetext, flags=re.DOTALL
+            )
 
             # Check for annotations
             del_start = 0
@@ -659,7 +678,7 @@ class Zaphod:
         """Rename files as required for diff."""
         revfilelist = []
         for filename in self.filelist:
-            revname = (filename[:-4] + "-" + rev + ".tex")
+            revname = filename[:-4] + "-" + rev + ".tex"
             revfilelist.append(revname)
         return revfilelist
 
@@ -669,90 +688,112 @@ class Zaphod:
             prog="zaphod",
             formatter_class=argparse.RawDescriptionHelpFormatter,
             epilog=self.usage_message,
-            add_help=False
+            add_help=False,
         )
 
-        self.parser.add_argument("-h", "--help", action=_HelpAction,
-                                 help="View subcommand help")
+        self.parser.add_argument(
+            "-h", "--help", action=_HelpAction, help="View subcommand help"
+        )
 
-        self.subparser = self.parser.add_subparsers(
-            help="additional help")
+        self.subparser = self.parser.add_subparsers(help="additional help")
 
         self.revise_parser = self.subparser.add_parser(
             "revise",
             help="Interactive revision\n",
             formatter_class=argparse.RawDescriptionHelpFormatter,
-            epilog="TIP: To accept all - switch to rev2 branch/revision.\n" +
-            "TIP: To reject all - switch to rev1 branch/revision.\n" +
-            "Yay! Git!"
+            epilog="TIP: To accept all - switch to rev2 branch/revision.\n"
+            + "TIP: To reject all - switch to rev1 branch/revision.\n"
+            + "Yay! Git!",
         )
         self.revise_parser.set_defaults(func=self.revise)
-        self.revise_parser.add_argument("-m", "--main",
-                                        action="store",
-                                        default="main.tex",
-                                        help="Name of main file. Only used to \
+        self.revise_parser.add_argument(
+            "-m",
+            "--main",
+            action="store",
+            default="main.tex",
+            help="Name of main file. Only used to \
                                         generate final pdf with changes. \n\
-                                        Default: main.tex")
-        self.revise_parser.add_argument("-s", "--subdir",
-                                        default=".",
-                                        action="store",
-                                        help="Name of subdirectory where main \
+                                        Default: main.tex",
+        )
+        self.revise_parser.add_argument(
+            "-s",
+            "--subdir",
+            default=".",
+            action="store",
+            help="Name of subdirectory where main \
                                         file resides.\n\
-                                        Default: ."
-                                        )
-        self.revise_parser.add_argument("-c", "--citations",
-                                        action="store_true",
-                                        default=False,
-                                        help="Document contains citations.\n\
+                                        Default: .",
+        )
+        self.revise_parser.add_argument(
+            "-c",
+            "--citations",
+            action="store_true",
+            default=False,
+            help="Document contains citations.\n\
                                         Will run pdflatex and bibtex as \
-                                        required. \nDefault: False"
-                                        )
+                                        required. \nDefault: False",
+        )
 
         self.diff_parser = self.subparser.add_parser(
             "diff",
             formatter_class=argparse.RawDescriptionHelpFormatter,
-            help="Generate changes output"
+            help="Generate changes output",
         )
         self.diff_parser.set_defaults(func=self.diff)
-        self.diff_parser.add_argument("-r", "--rev1",
-                                      default="master^",
-                                      action="store",
-                                      help="First revision to diff against")
-        self.diff_parser.add_argument("-t", "--rev2",
-                                      default="master",
-                                      action="store",
-                                      help="Second revision to diff with.")
-        self.diff_parser.add_argument("-m", "--main",
-                                      action="store",
-                                      default="main.tex",
-                                      help="Name of main file. Only used to \
+        self.diff_parser.add_argument(
+            "-r",
+            "--rev1",
+            default="master^",
+            action="store",
+            help="First revision to diff against",
+        )
+        self.diff_parser.add_argument(
+            "-t",
+            "--rev2",
+            default="master",
+            action="store",
+            help="Second revision to diff with.",
+        )
+        self.diff_parser.add_argument(
+            "-m",
+            "--main",
+            action="store",
+            default="main.tex",
+            help="Name of main file. Only used to \
                                       generate final pdf with changes. \n\
-                                      Default: main.tex")
-        self.diff_parser.add_argument("-s", "--subdir",
-                                      default=".",
-                                      action="store",
-                                      help="Name of subdirectory where main \
+                                      Default: main.tex",
+        )
+        self.diff_parser.add_argument(
+            "-s",
+            "--subdir",
+            default=".",
+            action="store",
+            help="Name of subdirectory where main \
                                       file resides.\n\
-                                      Default: ."
-                                      )
-        self.diff_parser.add_argument("-l", "--latexdiffopts",
-                                      default="--type=UNDERLINE",
-                                      action="store",
-                                      help="Pass options to latexdiff. \
+                                      Default: .",
+        )
+        self.diff_parser.add_argument(
+            "-l",
+            "--latexdiffopts",
+            default="--type=UNDERLINE",
+            action="store",
+            help="Pass options to latexdiff. \
                                       Please read man latexdiff for \
                                       available options.\
                                       These must be enclosed in single quotes \
                                       to ensure they're passed to latexdiff \
                                       without any processing.\
-                                      Default: --type=UNDERLINE"
-                                      )
-        self.diff_parser.add_argument("-c", "--citations",
-                                      action="store_true",
-                                      default=True,
-                                      help="Document contains citations.\n\
+                                      Default: --type=UNDERLINE",
+        )
+        self.diff_parser.add_argument(
+            "-c",
+            "--citations",
+            action="store_true",
+            default=True,
+            help="Document contains citations.\n\
                                       Will add -bibtex to latexmk.\n\
-                                      Default: True"
-                                      )
+                                      Default: True",
+        )
 
         self.clean_parser = self.subparser.add_parser(
             "clean",
@@ -760,59 +801,75 @@ class Zaphod:
             help="Clean up Zaphod related branches\n",
         )
         self.clean_parser.set_defaults(func=self.clean)
-        self.clean_parser.add_argument("-y", "--yes",
-                                       action="store_true",
-                                       default=False,
-                                       help="Assume yes \
+        self.clean_parser.add_argument(
+            "-y",
+            "--yes",
+            action="store_true",
+            default=False,
+            help="Assume yes \
                                        Please be careful when using \
                                        this option. \
-                                       Default: False"
-                                       )
+                                       Default: False",
+        )
 
     def check_setup(self):
         """Check if Git directory is clean."""
         command = "git status --porcelain".split()
         ps = subprocess.check_output(command)
-        rpModified = re.compile(r'^\s*M')
-        rpUntracked = re.compile(r'^\s*\?\?')
+        rpModified = re.compile(r"^\s*M")
+        rpUntracked = re.compile(r"^\s*\?\?")
 
-        if rpModified.search(ps.decode("ascii")) is not None or \
-                rpUntracked.search(ps.decode("ascii")) is not None:
-            print("Modifed or untracked files found.\n" +
-                  "git status output:\n" +
-                  ps.decode("ascii") +
-                  "\nPlease stash or commit and rerun Zaphod.",
-                  file=sys.stderr)
+        if (
+            rpModified.search(ps.decode("ascii")) is not None
+            or rpUntracked.search(ps.decode("ascii")) is not None
+        ):
+            self.logger.error(
+                "Modifed or untracked files found.\n"
+                + "git status output:\n"
+                + ps.decode("ascii")
+                + "\nPlease stash or commit and rerun Zaphod.",
+                file=sys.stderr,
+            )
             sys.exit(-3)
 
-        if 'subdir' in self.optionsDict and self.optionsDict['subdir'] \
-                and not os.path.isdir(self.optionsDict['subdir']):
-            print("Specified subdirectory not found at {}!\n".format(
-                self.optionsDict['subdir']) +
-                "Please check your arguments.", file=sys.stderr)
+        if (
+            "subdir" in self.optionsDict
+            and self.optionsDict["subdir"]
+            and not os.path.isdir(self.optionsDict["subdir"])
+        ):
+            self.logger.error(
+                f"Specified subdirectory not found at {self.optionsDict['subdir']}!\n"
+                + "Please check your arguments.",
+                file=sys.stderr,
+            )
             sys.exit(-4)
 
-        if 'main' in self.optionsDict and self.optionsDict['main'] \
-                and self.optionsDict['subdir'] and not \
-                os.path.isfile(os.path.join(self.optionsDict['subdir'],
-                                            self.optionsDict['main'])):
-            print("Specified main file not found at {}!\n".format
-                  (os.path.join(
-                      self.optionsDict['subdir'],
-                      self.optionsDict['main'])) +
-                  "Please check your arguments.", file=sys.stderr)
+        if (
+            "main" in self.optionsDict
+            and self.optionsDict["main"]
+            and self.optionsDict["subdir"]
+            and not os.path.isfile(
+                os.path.join(self.optionsDict["subdir"], self.optionsDict["main"])
+            )
+        ):
+            self.logger.error(
+                f"Specified main file not found at {os.path.join(self.optionsDict['subdir'], self.optionsDict['main'])}!\n"
+                + "Please check your arguments.",
+                file=sys.stderr,
+            )
             sys.exit(-4)
 
         for command in self.commandList:
             if not shutil.which(command):
-                print(command + " not found! Exiting!",
-                      file=sys.stderr)
+                self.logger.error(command + " not found! Exiting!", file=sys.stderr)
                 sys.exit(-5)
 
-        if 'citations' in self.optionsDict and \
-                self.optionsDict['citations'] and not shutil.which("bibtex"):
-            print("bibtex not found! Exiting!",
-                  file=sys.stderr)
+        if (
+            "citations" in self.optionsDict
+            and self.optionsDict["citations"]
+            and not shutil.which("bibtex")
+        ):
+            self.logger.error("bibtex not found! Exiting!", file=sys.stderr)
             sys.exit(-6)
 
     def zprint(self, message):
