@@ -22,17 +22,18 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
 import argparse
+import datetime
+import fnmatch
+import logging
+import os
+import re
+import shutil
+import subprocess
 import sys
 import textwrap
-import subprocess
-import os
-import fnmatch
-import re
-import datetime
-import shutil
-import logging
 
 from zaphod import __version__
+
 
 class _HelpAction(argparse._HelpAction):
     """
