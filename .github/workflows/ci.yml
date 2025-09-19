@@ -1,0 +1,46 @@
+name: Continuous builds
+
+on:
+  push:
+    branches:
+      - master
+      - development
+  pull_request:
+    branches:
+      - master
+      - development
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.9", "3.10", "3.11", "3.12", "3.13"]
+      fail-fast: false
+
+    steps:
+
+    - uses: actions/checkout@v4
+    - name: Set up Python  ${{ matrix.python-version }}
+      uses: actions/setup-python@v5
+      with:
+        python-version:  ${{ matrix.python-version }}
+
+    - name: Install latexdiff
+      run: |
+        sudo apt-get install latexdiff
+
+    - name: Upgrade pip, install deps
+      run: |
+        python -m pip install --upgrade pip
+        pip install .
+
+    - name: List packages so far
+      run: |
+        pip list
+        env
+
+    - name: Run tests
+      run: |
+        zaphod --help
