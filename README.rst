@@ -3,6 +3,14 @@ Zaphod
 
 A LaTeX change tracking tool.
 
+.. image:: https://img.shields.io/pypi/v/zaphodtex
+    :target: https://pypi.org/project/zaphodtex
+    :alt: zaphodtex on PyPi
+
+.. image:: https://img.shields.io/pypi/pyversions/zaphodtex
+    :target: https://pypi.org/project/zaphodtex
+    :alt: PyPi - Python version
+
 .. image:: https://img.shields.io/github/license/sanjayankur31/zaphod.svg
     :target: https://github.com/sanjayankur31/zaphod/blob/master/LICENSE
     :alt: GPLv3 Licensed
