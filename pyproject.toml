@@ -1,0 +1,10 @@
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[tool.ruff]
+
+[tool.ruff.lint]
+ignore = ["F403", "F405"]
+
+[tool.pytest.ini_options]

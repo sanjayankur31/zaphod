@@ -32,6 +32,7 @@ import datetime
 import shutil
 import logging
 
+from zaphod import __version__
 
 class _HelpAction(argparse._HelpAction):
     """
@@ -62,7 +63,10 @@ class Zaphod:
     def __init__(self):
         """Init method."""
         self.usage_message = textwrap.dedent(
-            """
+            f"""
+
+        zaphod (version: {__version__}): A LaTeX change tracking tool
+
         NOTES:
             The idea of this program is to help LaTeX users track, review, and
             see changes that have been made in their source files. The script
@@ -891,8 +895,13 @@ class Zaphod:
             self.options.func(self.options)
 
 
-if __name__ == "__main__":
+def cli():
+    """Main cli runner"""
     runner_instance = Zaphod()
     runner_instance.setup()
     runner_instance.run()
     sys.exit(0)
+
+
+if __name__ == "__main__":
+    cli()

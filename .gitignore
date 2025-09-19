@@ -1,3 +1,15 @@
 .ropeproject
 *.swp
 *.swo
+
+.project
+.pydevproject
+.idea
+*.egg-info
+MANIFEST
+dist/*
+build
+
+.venv
+.mypy_cache/
+
